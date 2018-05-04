@@ -418,6 +418,7 @@ MonoBehaviour:
   - {fileID: 1352286146}
   - {fileID: 905239877}
   creditsButton: {fileID: 73498758}
+  startButton: {fileID: 1256003530}
 --- !u!1 &454602633
 GameObject:
   m_ObjectHideFlags: 0

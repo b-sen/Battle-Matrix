@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class MenuScript : MonoBehaviour {
 
@@ -9,6 +10,7 @@ public class MenuScript : MonoBehaviour {
     public List<GameObject> menuItems;
     public List<GameObject> creditsItems;
     public Button creditsButton;
+    public Button startButton;
 
     bool isCredits;
 
@@ -16,12 +18,18 @@ public class MenuScript : MonoBehaviour {
     void Start () {
         SetMenu();
         isCredits = false;
+        startButton.onClick.AddListener(GoToPlay);
         creditsButton.onClick.AddListener(SwitchMenu);
 	}
 	
 	// Update is called once per frame
 	void Update () {
         
+    }
+
+    void GoToPlay()
+    {
+        SceneManager.LoadScene("Gameplay");
     }
 
     void SwitchMenu()
