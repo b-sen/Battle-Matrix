@@ -4,7 +4,8 @@ using UnityEngine;
 
 public class PlayerManager : MonoBehaviour {
 
-    struct PlayerControls
+    // Exists to contain the names of each player's input axis
+    public struct PlayerControls
     {
         string horizontal;
         string rotate;
@@ -18,11 +19,15 @@ public class PlayerManager : MonoBehaviour {
         }
     }
 
-    PlayerControls p1;
-    PlayerControls p2;
+    public PlayerControls p1;
+    public PlayerControls p2;
 
-	// Use this for initialization
-	void Start () {
+    // Index order is: left, right, rotate left, rotate right, drop
+    public List<GameObject> p1Icons;
+    public List<GameObject> p2Icons;
+
+    // Use this for initialization
+    void Start () {
         p1 = new PlayerControls("P1Horizontal", "P1Rotate", "P1Drop");
         p2 = new PlayerControls("P2Horizontal", "P2Rotate", "P2Drop");
     }
