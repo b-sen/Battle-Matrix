@@ -21,8 +21,8 @@ public class MenuScript : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		
-	}
+        
+    }
 
     void SwitchMenu()
     {
@@ -32,6 +32,7 @@ public class MenuScript : MonoBehaviour {
             SetCredits();
 
         isCredits = !isCredits;
+        print(isCredits);
 
     }
 
