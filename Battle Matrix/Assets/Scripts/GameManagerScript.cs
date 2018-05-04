@@ -28,8 +28,11 @@ public class GameManagerScript : MonoBehaviour {
         public void SlideRight() {
 
         }
-        public void FastDrop() {
-
+        // Unlike the other movement actions, fast drop is locked to the tick system and therefore must be turned on and off.
+        // This also allows players to hold down their fast drop button in order to get continuous fast drop.
+        // on: true toggles fast drop on, false toggles fast drop off.
+        public void FastDrop(bool on) {
+            
         }
 
     }
