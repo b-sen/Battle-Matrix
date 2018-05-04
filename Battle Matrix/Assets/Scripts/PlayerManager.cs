@@ -29,6 +29,8 @@ public class PlayerManager : MonoBehaviour {
     public List<GameObject> p1Icons;
     public List<GameObject> p2Icons;
 
+    GameManagerScript.PlayerBoard pb;
+
     // Use this for initialization
     void Start () {
         p1 = new PlayerControls("P1Horizontal", "P1Rotate", "P1Drop", p1Icons);
@@ -52,11 +54,13 @@ public class PlayerManager : MonoBehaviour {
         {
             player.icons[0].GetComponent<IconActivation>().Activation();
             player.icons[1].GetComponent<IconActivation>().Deactivation();
+            pb.SlideLeft();
         }
         else if (hz > 0)
         {
             player.icons[0].GetComponent<IconActivation>().Deactivation();
             player.icons[1].GetComponent<IconActivation>().Activation();
+            pb.SlideRight();
         }
         else
         {
@@ -69,11 +73,13 @@ public class PlayerManager : MonoBehaviour {
         {
             player.icons[2].GetComponent<IconActivation>().Activation();
             player.icons[3].GetComponent<IconActivation>().Deactivation();
+            pb.RotateClockwise();
         }
         else if (rt > 0)
         {
             player.icons[2].GetComponent<IconActivation>().Deactivation();
             player.icons[3].GetComponent<IconActivation>().Activation();
+            pb.RotateCounterClockwise();
         }
         else
         {
@@ -84,11 +90,13 @@ public class PlayerManager : MonoBehaviour {
         // Check Drop
         if (dr != 0)
         {
-            player.icons[4].GetComponent<IconActivation>().Activation();        
+            player.icons[4].GetComponent<IconActivation>().Activation();
+            pb.FastDrop(true);
         }
         else
         {
             player.icons[4].GetComponent<IconActivation>().Deactivation();
+            pb.FastDrop(false);
         }
 
 
