@@ -2,6 +2,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+// Make sure to use the block states in the same way as other scripts.
+[RequireComponent(typeof(BlockStateEnum))]
+
+// Make sure to use the polyominoes in the same way as other scripts.
+[RequireComponent(typeof(PolyominoShapeEnum))]
+
 /// <summary>
 /// In charge of all game logic.
 /// </summary>
