@@ -54,13 +54,13 @@ public class PlayerManager : MonoBehaviour {
         {
             player.icons[0].GetComponent<IconActivation>().Activation();
             player.icons[1].GetComponent<IconActivation>().Deactivation();
-            pb.SlideLeft();
+            //pb.SlideLeft();
         }
         else if (hz > 0)
         {
             player.icons[0].GetComponent<IconActivation>().Deactivation();
             player.icons[1].GetComponent<IconActivation>().Activation();
-            pb.SlideRight();
+            //pb.SlideRight();
         }
         else
         {
@@ -73,13 +73,13 @@ public class PlayerManager : MonoBehaviour {
         {
             player.icons[2].GetComponent<IconActivation>().Activation();
             player.icons[3].GetComponent<IconActivation>().Deactivation();
-            pb.RotateClockwise();
+            //pb.RotateClockwise();
         }
         else if (rt > 0)
         {
             player.icons[2].GetComponent<IconActivation>().Deactivation();
             player.icons[3].GetComponent<IconActivation>().Activation();
-            pb.RotateCounterClockwise();
+            //pb.RotateCounterClockwise();
         }
         else
         {
@@ -91,12 +91,12 @@ public class PlayerManager : MonoBehaviour {
         if (dr != 0)
         {
             player.icons[4].GetComponent<IconActivation>().Activation();
-            pb.FastDrop(true);
+            //pb.FastDrop(true);
         }
         else
         {
             player.icons[4].GetComponent<IconActivation>().Deactivation();
-            pb.FastDrop(false);
+            //pb.FastDrop(false);
         }
 
 
