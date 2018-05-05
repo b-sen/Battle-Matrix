@@ -53,10 +53,55 @@ public class GameManagerScript : MonoBehaviour {
 
         }
         public void SlideLeft() {
+            MoveAction slider = (poly) => {
+                List<Vector2Int> slideLocations = new List<Vector2Int>();
 
+                // "move" each block individually
+                foreach (BlockScript block in poly.memberBlocks) {
+                    // Where would this block slide to?
+                    Vector2Int newGridLocation = FindGridLocationOfBlock(block);
+                    newGridLocation.x -= 1;
+                    slideLocations.Add(newGridLocation);
+                }
+
+                bool slideIsPossible = CanInsertBlocksAtLocations(slideLocations);
+                // Actually move the blocks left in the world, setting up for RegisterPolyomino to move them in the grid.
+                if (slideIsPossible) {
+                    foreach (BlockScript block in poly.memberBlocks) {
+                        block.transform.position = new Vector3(block.transform.position.x - 1, block.transform.position.y, block.transform.position.z);  // no, Unity does not allow just setting the x component
+                    }
+                }
+                return slideIsPossible;
+            };
+
+            AttemptWithPolyominoUnregistered(controllablePolyomino, slider);
         }
         public void SlideRight() {
+            MoveAction slider = (poly) => {
+                List<Vector2Int> slideLocations = new List<Vector2Int>();
 
+                // "move" each block individually
+                foreach (BlockScript block in poly.memberBlocks)
+                {
+                    // Where would this block slide to?
+                    Vector2Int newGridLocation = FindGridLocationOfBlock(block);
+                    newGridLocation.x += 1;
+                    slideLocations.Add(newGridLocation);
+                }
+
+                bool slideIsPossible = CanInsertBlocksAtLocations(slideLocations);
+                // Actually move the blocks right in the world, setting up for RegisterPolyomino to move them in the grid.
+                if (slideIsPossible)
+                {
+                    foreach (BlockScript block in poly.memberBlocks)
+                    {
+                        block.transform.position = new Vector3(block.transform.position.x + 1, block.transform.position.y, block.transform.position.z);  // no, Unity does not allow just setting the x component
+                    }
+                }
+                return slideIsPossible;
+            };
+
+            AttemptWithPolyominoUnregistered(controllablePolyomino, slider);
         }
         // Unlike the other movement actions, fast drop is locked to the tick system and therefore must be turned on and off.
         // This also allows players to hold down their fast drop button in order to get continuous fast drop.
