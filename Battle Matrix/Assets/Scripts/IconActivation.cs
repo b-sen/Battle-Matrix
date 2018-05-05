@@ -18,12 +18,12 @@ public class IconActivation : MonoBehaviour {
     public void Activation()
     {
         Text txt = gameObject.GetComponent<Text>();
-        txt.color = Color.white;
+        txt.color = Color.yellow;
     }
 
     public void Deactivation()
     {
         Text txt = gameObject.GetComponent<Text>();
-        txt.color = Color.black;
+        txt.color = Color.white;
     }
 }
