@@ -43,7 +43,9 @@ public class PlayerManager : MonoBehaviour {
         {
             Debug.Log("test");
             pb1 = gm.player1;
+            Debug.Log("test 1:" + (pb1 != null) + "-" + (gm.player1 != null));
             pb2 = gm.player2;
+            Debug.Log("test 2:" + (pb2 != null) + "-" + (gm.player2 != null));
         }
         
     }
@@ -56,6 +58,11 @@ public class PlayerManager : MonoBehaviour {
 
     void CheckInputs(PlayerControls player, GameManagerScript.PlayerBoard pb)
     {
+        if(pb == null)
+        {
+            return;
+        }
+
         float hz = Input.GetAxis(player.horizontal);
         float rt = Input.GetAxis(player.rotate);
         float dr = Input.GetAxis(player.drop);
