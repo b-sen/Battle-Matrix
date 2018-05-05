@@ -5,6 +5,7 @@ using UnityEngine;
 public class ScoreManager : MonoBehaviour {
 
     int currentRound;
+    int bestOf;
     public int totalRounds;
 
     int p1RoundsWon = 0;
@@ -13,6 +14,8 @@ public class ScoreManager : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
         currentRound = 1;
+        float tr = (float)totalRounds;
+        bestOf = Mathf.CeilToInt(tr / 2);
 	}
 	
 	// Update is called once per frame
@@ -22,7 +25,7 @@ public class ScoreManager : MonoBehaviour {
 
     void NewRound()
     {
-        if (currentRound < totalRounds)
+        if (p1RoundsWon < bestOf || p2RoundsWon < bestOf)
             currentRound += 1;
         else
             EndGame();
@@ -32,4 +35,5 @@ public class ScoreManager : MonoBehaviour {
     {
         return;
     }
+
 }
