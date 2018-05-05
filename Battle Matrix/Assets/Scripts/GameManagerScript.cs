@@ -190,16 +190,16 @@ public class GameManagerScript : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
+        prng = new System.Random();
+
         // Assuming for simplicity that (0, 0) is at the bottom of the boards and centered between them.
         player1 = new PlayerBoard(this, new Vector2(-15, 0));
         player2 = new PlayerBoard(this, new Vector2(5, 0));
-
-        prng = new System.Random();
     }
 	
     // Choose a new random polyomino to queue.  Here in case we want both players to draw from a shared bag as another point of competition.
     private PolyominoShapeEnum.PolyominoShape ChoosePolyomino() {
-        return (PolyominoShapeEnum.PolyominoShape)prng.Next(System.Enum.GetNames(typeof(PolyominoShapeEnum.PolyominoShape)).Length);  // remains uniform regardless of number of polyominoes to choose from
+        return (PolyominoShapeEnum.PolyominoShape)(prng.Next(System.Enum.GetNames(typeof(PolyominoShapeEnum.PolyominoShape)).Length));  // remains uniform regardless of number of polyominoes to choose from
     }
 
 
