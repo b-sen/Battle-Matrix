@@ -22,6 +22,8 @@ public class GameManagerScript : MonoBehaviour {
         private Queue<PolyominoShapeEnum.PolyominoShape> upcomingPolyominoes;  // the shapes of all upcoming polyominoes (not generated onto the board yet)
         private PolyominoScript controllablePolyomino;  // current polyomino that is falling under player control (not due to attack)
 
+        private delegate bool MoveAction(PolyominoScript polyomino);
+
 
         public PlayerBoard(GameManagerScript manager, Vector2 offset) {
             gameManager = manager;
@@ -170,20 +172,30 @@ public class GameManagerScript : MonoBehaviour {
 
         // Attempts to drop a polyomino one grid row, respecting collision and leaving the polyomino in place on failure.  Returns true iff successful.
         private bool DropPolyomino(PolyominoScript polyomino) {
+            MoveAction dropper = (poly) => {
+                bool dropIsPossible = CanDropPolyomino(polyomino);
+                // Actually move the blocks down in the world, setting up for RegisterPolyomino to move them in the grid.
+                if (dropIsPossible) {
+                    foreach (BlockScript block in polyomino.memberBlocks) {
+                        block.transform.position = new Vector3(block.transform.position.x, block.transform.position.y - 1, block.transform.position.z);  // no, Unity does not allow just setting the y component
+                    }
+                }
+                return dropIsPossible;
+            };
+
+            return AttemptWithPolyominoUnregistered(polyomino, dropper);
+        }
+
+
+        private bool AttemptWithPolyominoUnregistered(PolyominoScript polyomino, MoveAction actionToAttempt) {
             /// Normally blocks in a moving polyomino are tracked in two places: the polyomino and the board.
             /// Here we take advantage of this by temporarily removing those blocks from the board (because they won't collide with each other) to aid collision checking.
             DeregisterPolyomino(polyomino);
 
-            bool dropIsPossible = CanDropPolyomino(polyomino);
-            // Actually move the blocks down in the world, setting up for RegisterPolyomino to move them in the grid.
-            if (dropIsPossible) {
-                foreach (BlockScript block in polyomino.memberBlocks) {
-                    block.transform.position = new Vector3(block.transform.position.x, block.transform.position.y - 1, block.transform.position.z);  // no, Unity does not allow just setting the y component
-                }
-            }
+            bool actionSuccess = actionToAttempt(polyomino);
 
-            RegisterPolyomino(polyomino);  // regardless of how the drop went, return the blocks to the board; will take care of moving the blocks in the grid
-            return dropIsPossible;
+            RegisterPolyomino(polyomino);  // regardless of how the action went, return the blocks to the board; will take care of moving the blocks in the grid
+            return actionSuccess;
         }
 
         // Removes all blocks in polyomino from the board; useful largely for temporary changes to perform calculations that want to not consider some polyominoes.
