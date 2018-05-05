@@ -71,6 +71,24 @@ public class GameManagerScript : MonoBehaviour {
         }
 
 
+        internal void DoTick() {
+            // Always drop the polyomino, but only lock it if it can't move.
+            if (!(DropPolyomino(controllablePolyomino))) {  // lock it and generate a new one
+
+            }
+        }
+
+        internal void DoFastDrop() {
+            if (fastDropState) DropPolyomino(controllablePolyomino);
+        }
+
+
+
+
+
+        /// <summary>
+        /// Helper functions.
+        /// </summary>
 
         private void GenerateNextControllablePolyomino() {
             PolyominoShapeEnum.PolyominoShape shape = upcomingPolyominoes.Dequeue();  // shape of the polyomino to generate
@@ -82,30 +100,30 @@ public class GameManagerScript : MonoBehaviour {
             // Specifies the blocks to place and spawning points for the given polyomino shape.
             switch (shape) { // all shapes arranged in their visual order on the board for ease of use
                 case PolyominoShapeEnum.PolyominoShape.O_Tetromino:
-                    newBlockLocations = new List<Vector2Int>(new Vector2Int[] {    new Vector2Int((boardWidth / 2) - 1, boardHeight - 1),  new Vector2Int((boardWidth / 2), boardHeight - 1),
+                    newBlockLocations = new List<Vector2Int>(new Vector2Int[] { new Vector2Int((boardWidth / 2) - 1, boardHeight - 1),  new Vector2Int((boardWidth / 2), boardHeight - 1),
                                                                                 new Vector2Int((boardWidth / 2) - 1, boardHeight - 2),  new Vector2Int((boardWidth / 2), boardHeight - 2)});
                     break;
                 case PolyominoShapeEnum.PolyominoShape.I_Tetromino:
-                    newBlockLocations = new List<Vector2Int>(new Vector2Int[] {    new Vector2Int((boardWidth / 2) - 2, boardHeight - 1),  new Vector2Int((boardWidth / 2) - 1, boardHeight - 1),  new Vector2Int((boardWidth / 2), boardHeight - 1),  new Vector2Int((boardWidth / 2) + 1, boardHeight - 1)});
+                    newBlockLocations = new List<Vector2Int>(new Vector2Int[] { new Vector2Int((boardWidth / 2) - 2, boardHeight - 1), new Vector2Int((boardWidth / 2) - 1, boardHeight - 1), new Vector2Int((boardWidth / 2), boardHeight - 1), new Vector2Int((boardWidth / 2) + 1, boardHeight - 1) });
                     break;
                 case PolyominoShapeEnum.PolyominoShape.T_Tetromino:
-                    newBlockLocations = new List<Vector2Int>(new Vector2Int[] {    new Vector2Int((boardWidth / 2) - 1, boardHeight - 1),  new Vector2Int((boardWidth / 2), boardHeight - 1),  new Vector2Int((boardWidth / 2) + 1, boardHeight - 1),
+                    newBlockLocations = new List<Vector2Int>(new Vector2Int[] { new Vector2Int((boardWidth / 2) - 1, boardHeight - 1),  new Vector2Int((boardWidth / 2), boardHeight - 1),  new Vector2Int((boardWidth / 2) + 1, boardHeight - 1),
                                                                                                                                         new Vector2Int((boardWidth / 2), boardHeight - 2)});
                     break;
                 case PolyominoShapeEnum.PolyominoShape.S_Tetromino:
-                    newBlockLocations = new List<Vector2Int>(new Vector2Int[] {    new Vector2Int((boardWidth / 2) - 1, boardHeight - 1),  new Vector2Int((boardWidth / 2), boardHeight - 1),
+                    newBlockLocations = new List<Vector2Int>(new Vector2Int[] { new Vector2Int((boardWidth / 2) - 1, boardHeight - 1),  new Vector2Int((boardWidth / 2), boardHeight - 1),
                         new Vector2Int((boardWidth / 2) - 2, boardHeight - 2),  new Vector2Int((boardWidth / 2) - 1, boardHeight - 2)});
                     break;
                 case PolyominoShapeEnum.PolyominoShape.Z_Tetromino:
-                    newBlockLocations = new List<Vector2Int>(new Vector2Int[] {    new Vector2Int((boardWidth / 2) - 2, boardHeight - 1),  new Vector2Int((boardWidth / 2) - 1, boardHeight - 1),
+                    newBlockLocations = new List<Vector2Int>(new Vector2Int[] { new Vector2Int((boardWidth / 2) - 2, boardHeight - 1),  new Vector2Int((boardWidth / 2) - 1, boardHeight - 1),
                                                                                                                                         new Vector2Int((boardWidth / 2) - 1, boardHeight - 2),  new Vector2Int((boardWidth / 2), boardHeight - 2)});
                     break;
                 case PolyominoShapeEnum.PolyominoShape.J_Tetromino:
-                    newBlockLocations = new List<Vector2Int>(new Vector2Int[] {    new Vector2Int((boardWidth / 2) - 2, boardHeight - 1),  new Vector2Int((boardWidth / 2) - 1, boardHeight - 1),  new Vector2Int((boardWidth / 2), boardHeight - 1),
+                    newBlockLocations = new List<Vector2Int>(new Vector2Int[] { new Vector2Int((boardWidth / 2) - 2, boardHeight - 1),  new Vector2Int((boardWidth / 2) - 1, boardHeight - 1),  new Vector2Int((boardWidth / 2), boardHeight - 1),
                                                                                                                                                                                                 new Vector2Int((boardWidth / 2), boardHeight - 2)});
                     break;
                 case PolyominoShapeEnum.PolyominoShape.L_Tetromino:
-                    newBlockLocations = new List<Vector2Int>(new Vector2Int[] {    new Vector2Int((boardWidth / 2) - 2, boardHeight - 2),  new Vector2Int((boardWidth / 2) - 1, boardHeight - 1),  new Vector2Int((boardWidth / 2), boardHeight - 1),
+                    newBlockLocations = new List<Vector2Int>(new Vector2Int[] { new Vector2Int((boardWidth / 2) - 2, boardHeight - 1),  new Vector2Int((boardWidth / 2) - 1, boardHeight - 1),  new Vector2Int((boardWidth / 2), boardHeight - 1),
                                                                                 new Vector2Int((boardWidth / 2) - 2, boardHeight - 2)});
                     break;
                 default:  // should never occur
@@ -122,9 +140,11 @@ public class GameManagerScript : MonoBehaviour {
             if (canSpawn) {  // generate and register blocks in place
                 foreach (Vector2Int gridLocation in newBlockLocations) {
                     BlockScript block = GenerateBlockInPlace(gridLocation);
-                    grid[gridLocation.y, gridLocation.x] = block;  // register to player's board
-                    controllablePolyomino.memberBlocks.Add(block);  // register to polyomino
+                    // register to polyomino
+                    controllablePolyomino.memberBlocks.Add(block);
+                    block.SetPolyomino(controllablePolyomino);
                 }
+                RegisterPolyomino(controllablePolyomino);
             } else {
                 // fill in generation of offending blocks anyway if desired
 
@@ -132,22 +152,81 @@ public class GameManagerScript : MonoBehaviour {
             }
         }
 
-
-
-
-        /// <summary>
-        /// Helper functions.
-        /// </summary>
-
         // Handles all the details of converting from a 2D integer grid location to a 3D floating point world position for block generation.
         private BlockScript GenerateBlockInPlace(Vector2Int gridLocation) {
             float epsilon = 0.000001F;  // to ensure that floor casting will return the correct grid location
             return ((GameObject)Instantiate(gameManager.blockPrefab, new Vector3(gridLocation.x + boardOffset.x + epsilon, gridLocation.y + boardOffset.y + epsilon, blockZLevel), Quaternion.identity)).GetComponent<BlockScript>();
         }
 
+        // Finds the appropriate grid location for a block from its world position.
+        private Vector2Int FindGridLocationOfBlock(BlockScript block) {
+            return new Vector2Int((int)(block.transform.position.x - boardOffset.x), (int)(block.transform.position.y - boardOffset.y));
+        }
+
         // Call only when losing a round.
         private void LoseRound() {
 
+        }
+
+        // Attempts to drop a polyomino one grid row, respecting collision and leaving the polyomino in place on failure.  Returns true iff successful.
+        private bool DropPolyomino(PolyominoScript polyomino) {
+            /// Normally blocks in a moving polyomino are tracked in two places: the polyomino and the board.
+            /// Here we take advantage of this by temporarily removing those blocks from the board (because they won't collide with each other) to aid collision checking.
+            DeregisterPolyomino(polyomino);
+
+            bool dropIsPossible = CanDropPolyomino(polyomino);
+            // Actually move the blocks down in the world, setting up for RegisterPolyomino to move them in the grid.
+            if (dropIsPossible) {
+                foreach (BlockScript block in polyomino.memberBlocks) {
+                    block.transform.position = new Vector3(block.transform.position.x, block.transform.position.y - 1, block.transform.position.z);  // no, Unity does not allow just setting the y component
+                }
+            }
+
+            RegisterPolyomino(polyomino);  // regardless of how the drop went, return the blocks to the board; will take care of moving the blocks in the grid
+            return dropIsPossible;
+        }
+
+        // Removes all blocks in polyomino from the board; useful largely for temporary changes to perform calculations that want to not consider some polyominoes.
+        private void DeregisterPolyomino(PolyominoScript polyomino) {
+            foreach (BlockScript block in polyomino.memberBlocks) {
+                Vector2Int gridLocation = FindGridLocationOfBlock(block);
+                if (!(Object.ReferenceEquals(grid[gridLocation.y, gridLocation.x], block))) { // should never occur
+                    Debug.Log("Block not found where expected!");
+                } else {
+                    grid[gridLocation.y, gridLocation.x] = null;
+                }
+            }
+        }
+
+        // Adds all blocks in polyomino to the board.
+        private void RegisterPolyomino(PolyominoScript polyomino) {
+            foreach (BlockScript block in polyomino.memberBlocks) {
+                Vector2Int gridLocation = FindGridLocationOfBlock(block);
+                if (grid[gridLocation.y, gridLocation.x] != null) { // should never occur
+                    Debug.Log("Two blocks in same grid location!");
+                } else {
+                    grid[gridLocation.y, gridLocation.x] = block;
+                }
+            }
+        }
+
+        // Checks if all blocks in a polyomino can drop.
+        private bool CanDropPolyomino(PolyominoScript polyomino) {
+            bool canDropAllBlocks = true;
+
+            // check each block individually
+            foreach (BlockScript block in polyomino.memberBlocks) {
+                // Where would this block drop to?
+                Vector2Int newGridLocation = FindGridLocationOfBlock(block);
+                newGridLocation.y -= 1;
+
+                // Would it be off the bottom of the board?  Would it run into another block?
+                if ((newGridLocation.y < 0) || (grid[newGridLocation.y, newGridLocation.x] != null)) {
+                    canDropAllBlocks = false;
+                }
+            }
+
+            return canDropAllBlocks;
         }
     }
 
@@ -182,6 +261,10 @@ public class GameManagerScript : MonoBehaviour {
     private static int boardHeight = 20;
     private static int boardWidth = 10;
 
+    // Balancing controls for game speed.
+    private static double tickLength = 1.0;
+    private static int fastDropMultiplier = 4;  // How much faster is fast drop than waiting for the block to fall on its own?
+
 
     /// <summary>
     /// For class functionality only.
@@ -189,6 +272,9 @@ public class GameManagerScript : MonoBehaviour {
 
     // PRNG instance to use as needed for attacks and polyomino selection.
     private System.Random prng;
+
+    private double timeSinceLastTick;
+    private double timeSinceLastFastDrop;
 
 
 	// Use this for initialization
@@ -198,6 +284,9 @@ public class GameManagerScript : MonoBehaviour {
         // Assuming for simplicity that (0, 0) is at the bottom of the boards and centered between them.
         player1 = new PlayerBoard(this, new Vector2(-15, 0));
         player2 = new PlayerBoard(this, new Vector2(5, 0));
+
+        timeSinceLastTick = 0.0;
+        timeSinceLastFastDrop = 0.0;
     }
 	
     // Choose a new random polyomino to queue.  Here in case we want both players to draw from a shared bag as another point of competition.
@@ -208,7 +297,22 @@ public class GameManagerScript : MonoBehaviour {
 
 	// Update is called once per frame
 	void Update () {
-		
+        timeSinceLastFastDrop += Time.deltaTime;
+        timeSinceLastTick += Time.deltaTime;
+
+        if (timeSinceLastTick >= tickLength) {  // time for the next tick
+            player1.DoTick();
+            player2.DoTick();
+            timeSinceLastTick -= tickLength;  // carryover-aware timer reset
+            timeSinceLastFastDrop -= (tickLength / fastDropMultiplier);  // must also reset fast drop, as its update is included in a tick update (no double dropping)
+        }
+
+        // implicit else with the exception of extremely slow framerates, which we want
+        if (timeSinceLastFastDrop >= (tickLength / fastDropMultiplier)) {  // time for the next fast drop
+            player1.DoFastDrop();
+            player2.DoFastDrop();
+            timeSinceLastFastDrop -= (tickLength / fastDropMultiplier);  // carryover-aware timer reset
+        }
 	}
 
 }
