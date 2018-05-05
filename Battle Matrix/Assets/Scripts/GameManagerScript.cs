@@ -173,10 +173,10 @@ public class GameManagerScript : MonoBehaviour {
         // Attempts to drop a polyomino one grid row, respecting collision and leaving the polyomino in place on failure.  Returns true iff successful.
         private bool DropPolyomino(PolyominoScript polyomino) {
             MoveAction dropper = (poly) => {
-                bool dropIsPossible = CanDropPolyomino(polyomino);
+                bool dropIsPossible = CanDropPolyomino(poly);
                 // Actually move the blocks down in the world, setting up for RegisterPolyomino to move them in the grid.
                 if (dropIsPossible) {
-                    foreach (BlockScript block in polyomino.memberBlocks) {
+                    foreach (BlockScript block in poly.memberBlocks) {
                         block.transform.position = new Vector3(block.transform.position.x, block.transform.position.y - 1, block.transform.position.z);  // no, Unity does not allow just setting the y component
                     }
                 }
