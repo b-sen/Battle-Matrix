@@ -41,6 +41,7 @@ public class PlayerManager : MonoBehaviour {
 
         if (gm)
         {
+            Debug.Log("test");
             pb1 = gm.player1;
             pb2 = gm.player2;
         }
@@ -58,6 +59,8 @@ public class PlayerManager : MonoBehaviour {
         float hz = Input.GetAxis(player.horizontal);
         float rt = Input.GetAxis(player.rotate);
         float dr = Input.GetAxis(player.drop);
+
+        Debug.Log(pb != null);
 
         // Check Horizontal
         if (hz < 0)
