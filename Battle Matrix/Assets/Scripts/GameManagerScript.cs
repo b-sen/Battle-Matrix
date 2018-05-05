@@ -125,6 +125,7 @@ public class GameManagerScript : MonoBehaviour {
                 }
             } else {
                 // fill in generation of offending blocks anyway if desired
+
                 LoseRound();
             }
         }
