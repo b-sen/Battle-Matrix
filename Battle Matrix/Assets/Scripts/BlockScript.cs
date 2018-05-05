@@ -9,6 +9,12 @@ public class BlockScript : MonoBehaviour {
     private BlockStateEnum.BlockState state;  // current state
     private PolyominoScript polyomino;  // polyomino this block is a member of, if any - null otherwise
 
+    public Sprite fallingSprite;
+    public Sprite lockedSprite;
+    public Sprite matchedSprite;
+
+    bool test = true;
+
     // Use this for initialization
     void Start () {
         this.SetState(BlockStateEnum.BlockState.Falling);  // default state for newly created blocks
@@ -31,6 +37,20 @@ public class BlockScript : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		
-	}
+        test = Input.GetKey("enter");
+
+        switch (state)
+        {
+            case BlockStateEnum.BlockState.Falling:
+                transform.GetComponent<SpriteRenderer>().sprite = fallingSprite;
+                break;
+            case BlockStateEnum.BlockState.Locked:
+                transform.GetComponent<SpriteRenderer>().sprite = lockedSprite;
+                break;
+            default:
+                transform.GetComponent<SpriteRenderer>().sprite = matchedSprite;
+                break;
+
+        }
+    }
 }
