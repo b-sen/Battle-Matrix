@@ -143,6 +143,7 @@ public class GameManagerScript : MonoBehaviour {
             upcomingPolyominoes.Enqueue(gameManager.ChoosePolyomino());  // immediately bring the queue up to full size
 
             controllablePolyomino = ((GameObject)Instantiate(gameManager.polyominoPrefab)).GetComponent<PolyominoScript>();  // new empty polyomino to fill
+            controllablePolyomino.memberBlocks = new List<BlockScript>();
             List<Vector2Int> newBlockLocations;
 
             // Specifies the blocks to place and spawning points for the given polyomino shape.
