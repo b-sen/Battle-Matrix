@@ -52,6 +52,11 @@ public class PlayerManager : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
+        if (pb1 == null)
+            pb1 = gm.player1;
+        if (pb2 == null)
+            pb2 = gm.player2;
+
         CheckInputs(p1, pb1);
         CheckInputs(p2, pb2);
     }

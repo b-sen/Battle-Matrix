@@ -26,6 +26,7 @@ public class GameManagerScript : MonoBehaviour {
 
 
         public PlayerBoard(GameManagerScript manager, Vector2 offset) {
+
             gameManager = manager;
             boardOffset = offset;
 
@@ -347,7 +348,7 @@ public class GameManagerScript : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
         prng = new System.Random();
-
+        
         // Assuming for simplicity that (0, 0) is at the bottom of the boards and centered between them.
         player1 = new PlayerBoard(this, new Vector2(-15, 0));
         player2 = new PlayerBoard(this, new Vector2(5, 0));
