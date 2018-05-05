@@ -13,8 +13,6 @@ public class BlockScript : MonoBehaviour {
     public Sprite lockedSprite;
     public Sprite matchedSprite;
 
-    bool test = true;
-
     // Use this for initialization
     void Start () {
         this.SetState(BlockStateEnum.BlockState.Falling);  // default state for newly created blocks
