@@ -29,21 +29,31 @@ public class PlayerManager : MonoBehaviour {
     public List<GameObject> p1Icons;
     public List<GameObject> p2Icons;
 
-    GameManagerScript.PlayerBoard pb;
+    public GameManagerScript gm;
+
+    GameManagerScript.PlayerBoard pb1;
+    GameManagerScript.PlayerBoard pb2;
 
     // Use this for initialization
     void Start () {
         p1 = new PlayerControls("P1Horizontal", "P1Rotate", "P1Drop", p1Icons);
         p2 = new PlayerControls("P2Horizontal", "P2Rotate", "P2Drop", p2Icons);
+
+        if (gm)
+        {
+            pb1 = gm.player1;
+            pb2 = gm.player2;
+        }
+        
     }
 	
 	// Update is called once per frame
 	void Update () {
-        CheckInputs(p1);
-        CheckInputs(p2);
+        CheckInputs(p1, pb1);
+        CheckInputs(p2, pb2);
     }
 
-    void CheckInputs(PlayerControls player)
+    void CheckInputs(PlayerControls player, GameManagerScript.PlayerBoard pb)
     {
         float hz = Input.GetAxis(player.horizontal);
         float rt = Input.GetAxis(player.rotate);
@@ -54,13 +64,13 @@ public class PlayerManager : MonoBehaviour {
         {
             player.icons[0].GetComponent<IconActivation>().Activation();
             player.icons[1].GetComponent<IconActivation>().Deactivation();
-            //pb.SlideLeft();
+            pb.SlideLeft();
         }
         else if (hz > 0)
         {
             player.icons[0].GetComponent<IconActivation>().Deactivation();
             player.icons[1].GetComponent<IconActivation>().Activation();
-            //pb.SlideRight();
+            pb.SlideRight();
         }
         else
         {
@@ -73,13 +83,13 @@ public class PlayerManager : MonoBehaviour {
         {
             player.icons[2].GetComponent<IconActivation>().Activation();
             player.icons[3].GetComponent<IconActivation>().Deactivation();
-            //pb.RotateClockwise();
+            pb.RotateClockwise();
         }
         else if (rt > 0)
         {
             player.icons[2].GetComponent<IconActivation>().Deactivation();
             player.icons[3].GetComponent<IconActivation>().Activation();
-            //pb.RotateCounterClockwise();
+            pb.RotateCounterClockwise();
         }
         else
         {
@@ -91,12 +101,12 @@ public class PlayerManager : MonoBehaviour {
         if (dr != 0)
         {
             player.icons[4].GetComponent<IconActivation>().Activation();
-            //pb.FastDrop(true);
+            pb.FastDrop(true);
         }
         else
         {
             player.icons[4].GetComponent<IconActivation>().Deactivation();
-            //pb.FastDrop(false);
+            pb.FastDrop(false);
         }
 
 
