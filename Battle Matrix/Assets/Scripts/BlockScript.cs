@@ -25,19 +25,6 @@ public class BlockScript : MonoBehaviour {
     }
     public void SetState(BlockStateEnum.BlockState newState) {
         state = newState;
-        // change sprite here
-    }
-
-    public PolyominoScript GetPolyomino() {
-        return polyomino;
-    }
-    public void SetPolyomino(PolyominoScript newPolyomino) {
-        polyomino = newPolyomino;
-    }
-	
-	// Update is called once per frame
-	void Update () {
-        test = Input.GetKey("enter");
 
         switch (state)
         {
@@ -52,5 +39,18 @@ public class BlockScript : MonoBehaviour {
                 break;
 
         }
+    }
+
+    public PolyominoScript GetPolyomino() {
+        return polyomino;
+    }
+    public void SetPolyomino(PolyominoScript newPolyomino) {
+        polyomino = newPolyomino;
+    }
+	
+	// Update is called once per frame
+	void Update () {
+        
+
     }
 }

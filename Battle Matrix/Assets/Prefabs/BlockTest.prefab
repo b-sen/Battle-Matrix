@@ -64,6 +64,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4fda73977f650984f996cf8d4494f223, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  fallingSprite: {fileID: 0}
+  lockedSprite: {fileID: 0}
+  matchedSprite: {fileID: 0}
 --- !u!212 &212190901605755650
 SpriteRenderer:
   m_ObjectHideFlags: 1
