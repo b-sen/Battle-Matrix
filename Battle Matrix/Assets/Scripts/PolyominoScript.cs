@@ -6,11 +6,11 @@ using UnityEngine;
 [RequireComponent(typeof(PolyominoShapeEnum))]
 
 public class PolyominoScript : MonoBehaviour {
-    public List<BlockScript> memberBlocks;
+    public List<BlockScript> memberBlocks;  // MUST be initially provided BY INSTANTIATOR!
 
 	// Use this for initialization
 	void Start () {
-        memberBlocks = new List<BlockScript>();
+        // Cannot actually initialize here, as this function can get called AFTER the code that both instantiates the object and populates the list!
 	}
 
     // Update is called once per frame
