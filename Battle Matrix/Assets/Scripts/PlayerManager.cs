@@ -41,11 +41,11 @@ public class PlayerManager : MonoBehaviour {
 
         if (gm)
         {
-            Debug.Log("test");
+            //Debug.Log("test");
             pb1 = gm.player1;
-            Debug.Log("test 1:" + (pb1 != null) + "-" + (gm.player1 != null));
+            //Debug.Log("test 1:" + (pb1 != null) + "-" + (gm.player1 != null));
             pb2 = gm.player2;
-            Debug.Log("test 2:" + (pb2 != null) + "-" + (gm.player2 != null));
+            //Debug.Log("test 2:" + (pb2 != null) + "-" + (gm.player2 != null));
         }
         
     }
@@ -72,7 +72,7 @@ public class PlayerManager : MonoBehaviour {
         float rt = Input.GetAxis(player.rotate);
         float dr = Input.GetAxis(player.drop);
 
-        Debug.Log(pb != null);
+        //Debug.Log(pb != null);
 
         // Check Horizontal
         if (hz < 0)
