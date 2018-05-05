@@ -34,6 +34,8 @@ public class GameManagerScript : MonoBehaviour {
             while (upcomingPolyominoes.Count < numUpcomingPolyominoes) {  // fully populate queue
                 upcomingPolyominoes.Enqueue(gameManager.ChoosePolyomino());
             }
+
+            GenerateNextControllablePolyomino();
         }
 
 
