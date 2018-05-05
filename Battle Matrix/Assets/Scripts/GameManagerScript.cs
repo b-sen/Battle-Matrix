@@ -212,21 +212,31 @@ public class GameManagerScript : MonoBehaviour {
 
         // Checks if all blocks in a polyomino can drop.
         private bool CanDropPolyomino(PolyominoScript polyomino) {
-            bool canDropAllBlocks = true;
+            List<Vector2Int> dropLocations = new List<Vector2Int>();
 
-            // check each block individually
+            // "move" each block individually
             foreach (BlockScript block in polyomino.memberBlocks) {
                 // Where would this block drop to?
                 Vector2Int newGridLocation = FindGridLocationOfBlock(block);
                 newGridLocation.y -= 1;
-
-                // Would it be off the bottom of the board?  Would it run into another block?
-                if ((newGridLocation.y < 0) || (grid[newGridLocation.y, newGridLocation.x] != null)) {
-                    canDropAllBlocks = false;
-                }
+                dropLocations.Add(newGridLocation);
             }
 
-            return canDropAllBlocks;
+            return CanInsertBlocksAtLocations(dropLocations);
+        }
+
+        // Checks if all new block positions are valid and available given a list.
+        private bool CanInsertBlocksAtLocations(List<Vector2Int> gridLocations) {
+            bool canInsertBlocks = true;
+
+            // check each block individually
+            foreach (Vector2Int location in gridLocations) {
+                // Is the location valid (checking bottom / top / left / right in order)?  Would it run into another block?
+                if ((location.y < 0) || (location.y >= boardHeight) || (location.x < 0) || (location.x >= boardWidth) || (grid[location.y, location.x] != null)) {
+                    canInsertBlocks = false;
+                }
+            }
+            return canInsertBlocks;
         }
     }
 
