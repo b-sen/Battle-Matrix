@@ -63,4 +63,5 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
-  gm: {fileID: 114286080233813552, guid: 40dfa39b932c49f499877c7b3f93d8af, type: 2}
+  delay: 0.15
+  gm: {fileID: 0}
