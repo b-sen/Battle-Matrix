@@ -19,7 +19,6 @@ public class IconActivation : MonoBehaviour {
     {
         Text txt = gameObject.GetComponent<Text>();
         txt.color = Color.yellow;
-        Debug.Log("yellow");
     }
 
     public void Deactivation()

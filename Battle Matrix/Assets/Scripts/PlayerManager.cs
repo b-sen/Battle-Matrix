@@ -87,6 +87,7 @@ public class PlayerManager : MonoBehaviour {
         bool rl = Input.GetButtonDown(player.rotateLeft);
         bool rr = Input.GetButtonDown(player.rotateRight);
         bool dr = Input.GetButtonDown(player.drop);
+        bool dr2 = Input.GetButtonUp(player.drop);
 
         bool leftS = Input.GetButton(player.left);
         bool rightS = Input.GetButton(player.right);
@@ -128,7 +129,7 @@ public class PlayerManager : MonoBehaviour {
             Debug.Log(player.drop);
             pb.FastDrop(true);
         }
-        else
+        else if (dr2)
         {
             pb.FastDrop(false);
         }
