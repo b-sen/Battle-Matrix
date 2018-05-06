@@ -36,6 +36,7 @@ public class GameManagerScript : MonoBehaviour {
             boardOffset = offset;
 
             fastDropState = false;
+            fallingPolyominos = new List<PolyominoScript>();
 
             grid = new BlockScript[boardHeight, boardWidth];  // automatically initializes to null
             attackTotals = new int[boardHeight];  // automatically initializes to 0s
@@ -132,11 +133,15 @@ public class GameManagerScript : MonoBehaviour {
             return (int[])(attackTotals.Clone());
         }
 
+
         internal void DoTick() {
             /// This ordering of checks ensures that matched rows are always shown for a tick and that polyominoes locked into place can immediately be considered for matching.
 
             // Clear previously matched rows.
             SweepMatchedRows();
+
+            // Drop any polyominos that are falling outside player control.
+            DropAllFallingPolyominos();
 
             // Always drop the polyomino, but only lock it if it can't move.
             if (!(DropPolyomino(controllablePolyomino))) {  // lock it and generate a new one
@@ -149,7 +154,10 @@ public class GameManagerScript : MonoBehaviour {
         }
 
         internal void DoFastDrop() {
-            if (fastDropState) DropPolyomino(controllablePolyomino);
+            // Drop any polyominos that are falling outside player control.
+            DropAllFallingPolyominos();
+
+            if (fastDropState) DropPolyomino(controllablePolyomino);  // drop the player's polyomino if needed, but do not lock
         }
 
 
@@ -354,6 +362,8 @@ public class GameManagerScript : MonoBehaviour {
 
         // Clears out all matched rows.
         private void SweepMatchedRows() {
+            int lowestSweptRow = boardHeight + 1;  // obviously invalid as is; for later use to determine if any blocks need to fall as a result of matching
+
             // check each row individually
             for (int row = 0; row < boardHeight; row++) {
                 if (attackTotals[row] != 0) {
@@ -365,8 +375,56 @@ public class GameManagerScript : MonoBehaviour {
 
                     // reset attack (and "row is matched") marker
                     attackTotals[row] = 0;
+
+                    if (lowestSweptRow > row) {
+                        lowestSweptRow = row;  // log the row we need to check above for falling blocks as a result of matching
+                    }
                 }
             }
+
+            // set up falling in all rows that have had their support removed
+            // "cascade mode" for now, as the simplest algorithm given the polyomino falling code
+            if (lowestSweptRow < boardHeight - 1) {  // if only the top row was matched, nothing needs to fall
+                // drop each column individually
+                for (int column = 0; column < boardWidth; column++) {
+                    // within this column, each contiguous group of blocks (disregarding all other columns) that is high enough to fall gets its own polyomino and falls independently
+                    PolyominoScript currentPolyomino = null;
+
+                    // ordering is deliberate, so that when the falls are checked for these the lowest will fall first (preventing unwanted collision)
+                    for (int row = lowestSweptRow + 1; row < boardHeight; row++) {
+                        if ((grid[row, column] != null) && (grid[row, column].GetState() == BlockStateEnum.BlockState.Locked)) {  // this block should fall
+                            // make a new polyomino if needed, and add it to the list of ones that should fall
+                            if (currentPolyomino == null) {
+                                currentPolyomino = ((GameObject)Instantiate(gameManager.polyominoPrefab)).GetComponent<PolyominoScript>();
+                                currentPolyomino.memberBlocks = new List<BlockScript>();
+                                fallingPolyominos.Add(currentPolyomino);
+                            }
+
+                            // this block should be in currentPolyomino, whether it was just created or not
+                            currentPolyomino.memberBlocks.Add(grid[row, column]);
+                            grid[row, column].SetPolyomino(currentPolyomino);
+
+                            // this block should know that it is now falling
+                            grid[row, column].SetState(BlockStateEnum.BlockState.Falling);
+                        } else {  // whether there's a block here or not, it ends the current polyomino by separating it from any blocks that should fall above
+                            currentPolyomino = null;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Drops (and locks as needed) all polyominos that are falling outside player control.
+        private void DropAllFallingPolyominos() {
+            // Using List.ForEach allows modification as we iterate, which is necessary for removing polyominos as they lock.
+            System.Action<PolyominoScript> dropper = (poly) => {
+                // Always drop the polyomino, but only lock it if it can't move.
+                if (!(DropPolyomino(poly))) {  // lock it and generate a new one
+                    fallingPolyominos.Remove(poly);  // remove before destruction, while we have the reference passed in
+                    LockPolyomino(poly);  // after this the old polyomino is no longer valid
+                }
+            };
+            fallingPolyominos.ForEach(dropper);
         }
     }
 
