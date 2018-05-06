@@ -88,43 +88,83 @@ public class PlayerManager : MonoBehaviour {
         bool rr = Input.GetButtonDown(player.rotateRight);
         bool dr = Input.GetButtonDown(player.drop);
 
+        bool leftS = Input.GetButton(player.left);
+        bool rightS = Input.GetButton(player.right);
+        bool rlS = Input.GetButton(player.rotateLeft);
+        bool rrS = Input.GetButton(player.rotateRight);
+        bool drS = Input.GetButton(player.drop);
+
         //Debug.Log(pb != null);
 
         // Check Left
         if (left)
         {
-            player.icons[0].GetComponent<IconActivation>().Activation();
+            Debug.Log(player.left);
             pb.SlideLeft();
-        } else
-        {
-            player.icons[0].GetComponent<IconActivation>().Deactivation();
         }
         // Check Right
         if (right)
         {
-            player.icons[1].GetComponent<IconActivation>().Activation();
+            Debug.Log(player.right);
             pb.SlideRight();
+        }
+
+        // Check Left Rotation
+        if (rl)
+        {
+            Debug.Log(player.rotateLeft);
+            pb.RotateClockwise();
+        }
+        // Check Right Rotation
+        if (rr)
+        {
+            Debug.Log(player.rotateRight);
+            pb.RotateCounterClockwise();
+        }
+
+        // Check Drop
+        if (dr)
+        {
+            Debug.Log(player.drop);
+            pb.FastDrop(true);
+        }
+        else
+        {
+            pb.FastDrop(false);
+        }
+
+
+        // Check Left Sign
+        if (leftS)
+        {
+            player.icons[0].GetComponent<IconActivation>().Activation();
+        } else
+        {
+            player.icons[0].GetComponent<IconActivation>().Deactivation();
+        }
+        // Check Right Sign
+        if (rightS)
+        {
+            player.icons[1].GetComponent<IconActivation>().Activation();
         }
         else
         {
             player.icons[1].GetComponent<IconActivation>().Deactivation();
         }
 
-        // Check Left Rotation
-        if (rl)
+        // Check Left Rotation Sign
+        if (rlS)
         {
             player.icons[2].GetComponent<IconActivation>().Activation();
-            pb.RotateClockwise();
         }
         else
         {
             player.icons[2].GetComponent<IconActivation>().Deactivation();
         }
-        // Check Right Rotation
-        if (rr)
+        // Check Right Rotation Sign
+        if (rrS)
         {
             player.icons[3].GetComponent<IconActivation>().Activation();
-            pb.RotateCounterClockwise();
         }
         else
         {
@@ -132,15 +172,13 @@ public class PlayerManager : MonoBehaviour {
         }
 
         // Check Drop
-        if (dr)
+        if (drS)
         {
             player.icons[4].GetComponent<IconActivation>().Activation();
-            pb.FastDrop(true);
         }
         else
         {
             player.icons[4].GetComponent<IconActivation>().Deactivation();
-            pb.FastDrop(false);
         }
 
 
