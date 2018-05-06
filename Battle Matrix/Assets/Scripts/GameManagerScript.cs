@@ -122,7 +122,8 @@ public class GameManagerScript : MonoBehaviour {
         internal void DoTick() {
             // Always drop the polyomino, but only lock it if it can't move.
             if (!(DropPolyomino(controllablePolyomino))) {  // lock it and generate a new one
-
+                LockPolyomino(controllablePolyomino);  // after this the old polyomino is no longer valid
+                GenerateNextControllablePolyomino();
             }
         }
 
@@ -296,6 +297,14 @@ public class GameManagerScript : MonoBehaviour {
                 }
             }
             return canInsertBlocks;
+        }
+
+        // Changes block states as needed for all blocks in polyomino, and destroys the polyomino as no longer needed.
+        private void LockPolyomino(PolyominoScript polyomino) {
+            foreach (BlockScript block in polyomino.memberBlocks) {
+                block.SetState(BlockStateEnum.BlockState.Locked);
+            }
+            Destroy(polyomino.gameObject);
         }
     }
 
