@@ -15,7 +15,7 @@ public class RowScoreScript : MonoBehaviour {
     public GameObject multi1;
     public GameObject multi2;
 
-    GameManagerScript.PlayerBoard[] pb = new GameManagerScript.PlayerBoard[2];
+    // GameManagerScript.PlayerBoard[] pb = new GameManagerScript.PlayerBoard[2];
 
     int[] p1Attack;
     int[] p2Attack;
@@ -25,14 +25,14 @@ public class RowScoreScript : MonoBehaviour {
     // Use this for initialization
     void Start () {
 
-       if (gm)
+       /*if (gm)
         {
             //Debug.Log("test");
             pb[0] = gm.player1;
             //Debug.Log("test 1:" + (pb1 != null) + "-" + (gm.player1 != null));
             pb[1] = gm.player2;
             //Debug.Log("test 2:" + (pb2 != null) + "-" + (gm.player2 != null));
-        }
+        }*/
 
         for (int i = 0; i < rows1.Count; i++)
         {
@@ -48,35 +48,35 @@ public class RowScoreScript : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 
-        if (pb[0] == null)
+        /*if (pb[0] == null)
             pb[0] = gm.player1;
         if (pb[1] == null)
-            pb[1] = gm.player2;
+            pb[1] = gm.player2;*/
 
-        if(pb[0] != null)
+        if(gm.player1 != null)
         {
-            rounds1.GetComponent<Text>().text = "Rounds Won: " + pb[0].GetRoundMultiplier().ToString();
-            multi1.GetComponent<Text>().text = "Multiplier: " + pb[0].GetRoundMultiplier().ToString();
+            rounds1.GetComponent<Text>().text = "Rounds Won: " + gm.player1.GetRoundMultiplier().ToString();
+            multi1.GetComponent<Text>().text = "Multiplier: " + gm.player1.GetRoundMultiplier().ToString();
 
-            for (int i = 0; i < pb[0].GetAttackTotals().Length; i++)
+            for (int i = 0; i < gm.player1.GetAttackTotals().Length; i++)
             {
-                if (rows1[i] != null || pb[0].GetAttackTotals()[i] == 0)
+                if (rows1[i] != null || gm.player1.GetAttackTotals()[i] == 0)
                     rows1[i].GetComponent<Text>().text = "";
                 else
-                    rows1[i].GetComponent<Text>().text = pb[0].GetAttackTotals()[i].ToString();
+                    rows1[i].GetComponent<Text>().text = gm.player1.GetAttackTotals()[i].ToString();
             }
         }
-        if (pb[1] != null)
+        if (gm.player2 != null)
         {
-            rounds2.GetComponent<Text>().text = "Rounds Won: " + pb[1].GetRoundMultiplier().ToString();
-            multi2.GetComponent<Text>().text = "Multiplier: " + pb[1].GetRoundMultiplier().ToString();
+            rounds2.GetComponent<Text>().text = "Rounds Won: " + gm.player2.GetRoundMultiplier().ToString();
+            multi2.GetComponent<Text>().text = "Multiplier: " + gm.player2.GetRoundMultiplier().ToString();
 
-            for (int i = 0; i < pb[1].GetAttackTotals().Length; i++)
+            for (int i = 0; i < gm.player2.GetAttackTotals().Length; i++)
             {
-                if (rows2[i] != null || pb[0].GetAttackTotals()[i] == 0)
+                if (rows2[i] != null || gm.player2.GetAttackTotals()[i] == 0)
                     rows2[i].GetComponent<Text>().text = "";
                 else
-                    rows2[i].GetComponent<Text>().text = pb[0].GetAttackTotals()[i].ToString();
+                    rows2[i].GetComponent<Text>().text = gm.player2.GetAttackTotals()[i].ToString();
             }
         }
 

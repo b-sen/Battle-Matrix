@@ -34,14 +34,14 @@ public class PlayerManager : MonoBehaviour {
     public List<GameObject> p1Icons;
     public List<GameObject> p2Icons;
 
-    public float delay = 0.5f;
+    /*public float delay = 0.5f;
     float nextTime = 0.5f;
-    float currTime = 0f;
+    float currTime = 0f;*/
 
     public GameManagerScript gm;
 
-    GameManagerScript.PlayerBoard pb1;
-    GameManagerScript.PlayerBoard pb2;
+    //GameManagerScript.PlayerBoard pb1;
+    //GameManagerScript.PlayerBoard pb2;
 
     // Use this for initialization
     void Start () {
@@ -49,29 +49,29 @@ public class PlayerManager : MonoBehaviour {
         p1 = new PlayerControls("P1Left", "P1Right", "P1RotateLeft", "P1RotateRight", "P1Drop", p1Icons);
         p2 = new PlayerControls("P2Left", "P2Right", "P2RotateLeft", "P2RotateRight", "P2Drop", p2Icons);
 
-        if (gm)
+        /*if (gm)
         {
             //Debug.Log("test");
             pb1 = gm.player1;
             //Debug.Log("test 1:" + (pb1 != null) + "-" + (gm.player1 != null));
             pb2 = gm.player2;
             //Debug.Log("test 2:" + (pb2 != null) + "-" + (gm.player2 != null));
-        }
+        }*/
         
     }
 	
 	// Update is called once per frame
 	void Update () {
 
-        currTime += Time.deltaTime;
+        //currTime += Time.deltaTime;
 
-        if (pb1 == null)
+        /*if (pb1 == null)
             pb1 = gm.player1;
         if (pb2 == null)
-            pb2 = gm.player2;
+            pb2 = gm.player2;*/
 
-        CheckInputs(p1, pb1);
-        CheckInputs(p2, pb2);
+        CheckInputs(p1, gm.player1);
+        CheckInputs(p2, gm.player2);
 
     }
 
