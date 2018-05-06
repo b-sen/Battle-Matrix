@@ -7,17 +7,21 @@ public class PlayerManager : MonoBehaviour {
     // Exists to contain the names of each player's input axis
     public struct PlayerControls
     {
-        public string horizontal;
-        public string rotate;
+        public string left;
+        public string right;
+        public string rotateLeft;
+        public string rotateRight;
         public string drop;
 
         
         public List<GameObject> icons;
 
-        public PlayerControls(string hz, string rt, string dr, List<GameObject> ic)
+        public PlayerControls(string l, string r, string rl, string rr, string dr, List<GameObject> ic)
         {
-            this.horizontal = hz;
-            this.rotate = rt;
+            this.left = l;
+            this.right = r;
+            this.rotateLeft = rl;
+            this.rotateRight = rr;
             this.drop = dr;
             this.icons = ic;
         }
@@ -42,8 +46,8 @@ public class PlayerManager : MonoBehaviour {
     // Use this for initialization
     void Start () {
         
-        p1 = new PlayerControls("P1Horizontal", "P1Rotate", "P1Drop", p1Icons);
-        p2 = new PlayerControls("P2Horizontal", "P2Rotate", "P2Drop", p2Icons);
+        p1 = new PlayerControls("P1Left", "P1Right", "P1RotateLeft", "P1RotateRight", "P1Drop", p1Icons);
+        p2 = new PlayerControls("P2Left", "P2Right", "P2RotateLeft", "P2RotateRight", "P2Drop", p2Icons);
 
         if (gm)
         {
@@ -78,68 +82,57 @@ public class PlayerManager : MonoBehaviour {
             return;
         }
 
-        float hz = Input.GetAxis(player.horizontal);
-        float rt = Input.GetAxis(player.rotate);
-        float dr = Input.GetAxis(player.drop);
+        bool left = Input.GetButtonDown(player.left);
+        bool right = Input.GetButtonDown(player.right);
+        bool rl = Input.GetButtonDown(player.rotateLeft);
+        bool rr = Input.GetButtonDown(player.rotateRight);
+        bool dr = Input.GetButtonDown(player.drop);
 
         //Debug.Log(pb != null);
 
-        // Check Horizontal
-        if (hz < 0)
+        // Check Left
+        if (left)
         {
             player.icons[0].GetComponent<IconActivation>().Activation();
-            player.icons[1].GetComponent<IconActivation>().Deactivation();
-            if(currTime > nextTime)
-            {
-                nextTime = currTime + delay;
-                pb.SlideLeft();
-            }
-        }
-        else if (hz > 0)
+            pb.SlideLeft();
+        } else
         {
             player.icons[0].GetComponent<IconActivation>().Deactivation();
+        }
+        // Check Right
+        if (right)
+        {
             player.icons[1].GetComponent<IconActivation>().Activation();
-            if (currTime > nextTime)
-            {
-                nextTime = currTime + delay;
-                pb.SlideRight();
-            }
+            pb.SlideRight();
         }
         else
         {
-            player.icons[0].GetComponent<IconActivation>().Deactivation();
             player.icons[1].GetComponent<IconActivation>().Deactivation();
         }
 
-        // Check Rotation
-        if (rt < 0)
+        // Check Left Rotation
+        if (rl)
         {
             player.icons[2].GetComponent<IconActivation>().Activation();
-            player.icons[3].GetComponent<IconActivation>().Deactivation();
-            if (currTime > nextTime)
-            {
-                nextTime = currTime + delay;
-                pb.RotateClockwise();
-            }
-        }
-        else if (rt > 0)
-        {
-            player.icons[2].GetComponent<IconActivation>().Deactivation();
-            player.icons[3].GetComponent<IconActivation>().Activation();
-            if (currTime > nextTime)
-            {
-                nextTime = currTime + delay;
-                pb.RotateCounterClockwise();
-            }
+            pb.RotateClockwise();
         }
         else
         {
             player.icons[2].GetComponent<IconActivation>().Deactivation();
+        }
+        // Check Right Rotation
+        if (rr)
+        {
+            player.icons[3].GetComponent<IconActivation>().Activation();
+            pb.RotateCounterClockwise();
+        }
+        else
+        {
             player.icons[3].GetComponent<IconActivation>().Deactivation();
         }
 
         // Check Drop
-        if (dr != 0)
+        if (dr)
         {
             player.icons[4].GetComponent<IconActivation>().Activation();
             pb.FastDrop(true);
