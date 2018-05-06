@@ -55,7 +55,7 @@ public class RowScoreScript : MonoBehaviour {
 
         if(gm.player1 != null)
         {
-            rounds1.GetComponent<Text>().text = "Rounds Won: " + gm.player1.GetRoundMultiplier().ToString();
+            rounds1.GetComponent<Text>().text = "Rounds Won: " + gm.GetPlayerRoundsWon(1).ToString();
             multi1.GetComponent<Text>().text = "Multiplier: " + gm.player1.GetRoundMultiplier().ToString();
 
             for (int i = 0; i < gm.player1.GetAttackTotals().Length; i++)
@@ -68,7 +68,7 @@ public class RowScoreScript : MonoBehaviour {
         }
         if (gm.player2 != null)
         {
-            rounds2.GetComponent<Text>().text = "Rounds Won: " + gm.player2.GetRoundMultiplier().ToString();
+            rounds2.GetComponent<Text>().text = "Rounds Won: " + gm.GetPlayerRoundsWon(2).ToString();
             multi2.GetComponent<Text>().text = "Multiplier: " + gm.player2.GetRoundMultiplier().ToString();
 
             for (int i = 0; i < gm.player2.GetAttackTotals().Length; i++)
