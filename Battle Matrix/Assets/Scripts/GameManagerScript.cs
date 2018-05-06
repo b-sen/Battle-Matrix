@@ -57,9 +57,10 @@ public class GameManagerScript : MonoBehaviour {
         /// </summary>
         public void RotateClockwise() {
 
+            RotatePolyomino(controllablePolyomino, 1);
         }
         public void RotateCounterClockwise() {
-
+            RotatePolyomino(controllablePolyomino, -1);
         }
         public void SlideLeft() {
             MoveAction slider = (poly) => {
@@ -76,9 +77,7 @@ public class GameManagerScript : MonoBehaviour {
                 bool slideIsPossible = CanInsertBlocksAtLocations(slideLocations);
                 // Actually move the blocks left in the world, setting up for RegisterPolyomino to move them in the grid.
                 if (slideIsPossible) {
-                    foreach (BlockScript block in poly.memberBlocks) {
-                        block.transform.position = new Vector3(block.transform.position.x - 1, block.transform.position.y, block.transform.position.z);  // no, Unity does not allow just setting the x component
-                    }
+                    MoveBlocksToGridLocations(poly.memberBlocks, slideLocations);
                 }
                 return slideIsPossible;
             };
@@ -90,8 +89,7 @@ public class GameManagerScript : MonoBehaviour {
                 List<Vector2Int> slideLocations = new List<Vector2Int>();
 
                 // "move" each block individually
-                foreach (BlockScript block in poly.memberBlocks)
-                {
+                foreach (BlockScript block in poly.memberBlocks) {
                     // Where would this block slide to?
                     Vector2Int newGridLocation = FindGridLocationOfBlock(block);
                     newGridLocation.x += 1;
@@ -100,12 +98,8 @@ public class GameManagerScript : MonoBehaviour {
 
                 bool slideIsPossible = CanInsertBlocksAtLocations(slideLocations);
                 // Actually move the blocks right in the world, setting up for RegisterPolyomino to move them in the grid.
-                if (slideIsPossible)
-                {
-                    foreach (BlockScript block in poly.memberBlocks)
-                    {
-                        block.transform.position = new Vector3(block.transform.position.x + 1, block.transform.position.y, block.transform.position.z);  // no, Unity does not allow just setting the x component
-                    }
+                if (slideIsPossible) {
+                    MoveBlocksToGridLocations(poly.memberBlocks, slideLocations);
                 }
                 return slideIsPossible;
             };
@@ -237,10 +231,21 @@ public class GameManagerScript : MonoBehaviour {
             }
         }
 
-        // Handles all the details of converting from a 2D integer grid location to a 3D floating point world position for block generation.
+        // Handle all the details of converting from a 2D integer grid location to a 3D floating point world position for block generation.
         private BlockScript GenerateBlockInPlace(Vector2Int gridLocation) {
+            BlockScript newBlock = ((GameObject)Instantiate(gameManager.blockPrefab)).GetComponent<BlockScript>();
+            MoveBlockToGridLocation(newBlock, gridLocation);
+            return newBlock;
+        }
+        private void MoveBlockToGridLocation(BlockScript block, Vector2Int gridLocation) {
             float epsilon = 0.000001F;  // to ensure that floor casting will return the correct grid location
-            return ((GameObject)Instantiate(gameManager.blockPrefab, new Vector3(gridLocation.x + boardOffset.x + epsilon, gridLocation.y + boardOffset.y + epsilon, blockZLevel), Quaternion.identity)).GetComponent<BlockScript>();
+            block.transform.position = new Vector3(gridLocation.x + boardOffset.x + epsilon, gridLocation.y + boardOffset.y + epsilon, blockZLevel);
+        }
+        // Both lists must be the same length!
+        private void MoveBlocksToGridLocations(List<BlockScript> blocks, List<Vector2Int> gridLocations) {
+            for (int i = 0; i < gridLocations.Count; i++) {
+                MoveBlockToGridLocation(blocks[i], gridLocations[i]);
+            }
         }
 
         // Finds the appropriate grid location for a block from its world position.
@@ -267,6 +272,51 @@ public class GameManagerScript : MonoBehaviour {
             };
 
             return AttemptWithPolyominoUnregistered(polyomino, dropper);
+        }
+
+        // Attempts to rotate a polyomino 90 degrees, respecting collision and leaving the polyomino in place on failure.  Valid directions are 1 for clockwise and -1 for counterclockwise.
+        private void RotatePolyomino(PolyominoScript polyomino, int direction) {
+            // get bounding box of polyomino
+            Vector2Int bottomLeft = FindGridLocationOfBlock(polyomino.memberBlocks[0]);
+            Vector2Int topRight = FindGridLocationOfBlock(polyomino.memberBlocks[0]);  // cannot just make another reference to bottomLeft!
+            foreach (BlockScript block in polyomino.memberBlocks)
+            {
+                Vector2Int location = FindGridLocationOfBlock(block);
+
+                // must check for expansion of each coordinate; Max and Min do two comparisons each
+                bottomLeft = Vector2Int.Min(bottomLeft, location);
+                topRight = Vector2Int.Max(bottomLeft, location);
+            }
+
+            // choose pivot point based on bounding box (bias up and left in case of ties)
+            Vector2 pivot = new Vector2(); // floating point because we're going to offset it (so as to rotate blocks based on their centers without offsetting all the block locations)
+            pivot.x = (float)(bottomLeft.x + Mathf.FloorToInt((topRight.x + 1 - bottomLeft.x) / 2.0f));  // floor biases left, +1 accounts for size of top-right block
+            pivot.y = (float)(bottomLeft.y + Mathf.CeilToInt((topRight.y + 1 - bottomLeft.y) / 2.0f));  // ceiling biases up, +1 accounts for size of top-right block
+            pivot -= new Vector2(0.5f, 0.5f);  // offsetting
+
+            // attempt rotation around that pivot point
+            MoveAction rotater = (poly) => {
+                List<Vector2Int> rotateLocations = new List<Vector2Int>();
+
+                // "move" each block individually
+                foreach (BlockScript block in poly.memberBlocks)
+                {
+                    // Where would this block rotate to?
+                    // Each coordinate is of the form (offset from pivot) + pivot
+                    Vector2Int newGridLocation = new Vector2Int(Mathf.RoundToInt(direction * (FindGridLocationOfBlock(block).y - pivot.y) + pivot.x), Mathf.RoundToInt((- direction) * (FindGridLocationOfBlock(block).x - pivot.x) + pivot.y));
+                    rotateLocations.Add(newGridLocation);
+                }
+
+                bool rotateIsPossible = CanInsertBlocksAtLocations(rotateLocations);
+                // Actually move the blocks clockwise in the world, setting up for RegisterPolyomino to move them in the grid.
+                if (rotateIsPossible)
+                {
+                    MoveBlocksToGridLocations(poly.memberBlocks, rotateLocations);
+                }
+                return rotateIsPossible;
+            };
+
+            AttemptWithPolyominoUnregistered(polyomino, rotater);
         }
 
 
