@@ -494,10 +494,10 @@ public class GameManagerScript : MonoBehaviour {
     /// <summary>
     /// Accessors for use by other scripts.
     /// </summary>
-    int GetNumRoundsToWin() {
+    public int GetNumRoundsToWin() {
         return numRoundsToWin;
     }
-    int GetPlayerRoundsWon(int player) {
+    public int GetPlayerRoundsWon(int player) {
         return roundsWon[player - 1];
     }
 
