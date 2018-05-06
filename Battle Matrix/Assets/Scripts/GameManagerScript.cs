@@ -8,6 +8,9 @@ using UnityEngine;
 // Make sure to use the polyominoes in the same way as other scripts.
 [RequireComponent(typeof(PolyominoShapeEnum))]
 
+
+
+
 /// <summary>
 /// In charge of all game logic.
 /// </summary>
@@ -19,8 +22,10 @@ public class GameManagerScript : MonoBehaviour {
         private bool fastDropState;  // does the player currently have fast drop on?
 
         private BlockScript[,] grid;  // the board of blocks
+        private int[] attackTotals;  // the number of blocks that will be sent next tick based on each row's status this tick; 0 means "no attack" and also indicates an unmatched row
         private Queue<PolyominoShapeEnum.PolyominoShape> upcomingPolyominoes;  // the shapes of all upcoming polyominoes (not generated onto the board yet)
         private PolyominoScript controllablePolyomino;  // current polyomino that is falling under player control (not due to attack)
+        private List<PolyominoScript> fallingPolyominos;  // all polyominos that are currently falling outside player control
 
         private delegate bool MoveAction(PolyominoScript polyomino);
 
@@ -33,6 +38,7 @@ public class GameManagerScript : MonoBehaviour {
             fastDropState = false;
 
             grid = new BlockScript[boardHeight, boardWidth];  // automatically initializes to null
+            attackTotals = new int[boardHeight];  // automatically initializes to 0s
             upcomingPolyominoes = new Queue<PolyominoShapeEnum.PolyominoShape>();
             while (upcomingPolyominoes.Count < numUpcomingPolyominoes) {  // fully populate queue
                 upcomingPolyominoes.Enqueue(gameManager.ChoosePolyomino());
@@ -120,11 +126,19 @@ public class GameManagerScript : MonoBehaviour {
 
 
         internal void DoTick() {
+            /// This ordering of checks ensures that matched rows are always shown for a tick and that polyominoes locked into place can immediately be considered for matching.
+
+            // Clear previously matched rows.
+            SweepMatchedRows();
+
             // Always drop the polyomino, but only lock it if it can't move.
             if (!(DropPolyomino(controllablePolyomino))) {  // lock it and generate a new one
                 LockPolyomino(controllablePolyomino);  // after this the old polyomino is no longer valid
                 GenerateNextControllablePolyomino();
             }
+
+            // Check for matched rows.
+            FindMatchedRows();
         }
 
         internal void DoFastDrop() {
@@ -306,6 +320,47 @@ public class GameManagerScript : MonoBehaviour {
             }
             Destroy(polyomino.gameObject);
         }
+
+        // Flags all matched rows and sets block states accordingly.
+        private void FindMatchedRows() {
+            // check each row individually
+            for (int row = 0; row < boardHeight; row++) {
+                // to be matched, a row must consist of only locked blocks
+                bool isMatched = true;
+                for (int column = 0; column < boardWidth; column++) {
+                    // Is there a block at this position?  If so, is it locked?
+                    if ((grid[row, column] == null) || (grid[row, column].GetState() != BlockStateEnum.BlockState.Locked)) {
+                        isMatched = false;
+                    }
+                }
+
+                if (isMatched) {
+                    // change all the block states to reflect the matched row
+                    for (int column = 0; column < boardWidth; column++) {
+                        grid[row, column].SetState(BlockStateEnum.BlockState.Matched);
+                    }
+
+                    attackTotals[row] = attackStrengths[row];  // calculate number of blocks to send and indicate status for clearing next tick
+                }
+            }
+        }
+
+        // Clears out all matched rows.
+        private void SweepMatchedRows() {
+            // check each row individually
+            for (int row = 0; row < boardHeight; row++) {
+                if (attackTotals[row] != 0) {
+                    // destroy all the blocks and remove them from the grid; matched blocks cannot be in polyominoes so this is fine to run
+                    for (int column = 0; column < boardWidth; column++) {
+                        Destroy(grid[row, column].gameObject);
+                        grid[row, column] = null;
+                    }
+
+                    // reset attack (and "row is matched") marker
+                    attackTotals[row] = 0;
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -342,6 +397,9 @@ public class GameManagerScript : MonoBehaviour {
     // Balancing controls for game speed.
     private static double tickLength = 1.0;
     private static int fastDropMultiplier = 4;  // How much faster is fast drop than waiting for the block to fall on its own?
+
+    // Controls how powerful attacks are at each row height (how many blocks they send, before round-based multipliers).
+    private static int[] attackStrengths = {10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29};  // set up individually rather than as multipliers for individual tweaking
 
 
     /// <summary>
