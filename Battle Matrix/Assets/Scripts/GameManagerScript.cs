@@ -23,6 +23,7 @@ public class GameManagerScript : MonoBehaviour {
 
         private BlockScript[,] grid;  // the board of blocks
         private int[] attackTotals;  // the number of blocks that will be sent next tick based on each row's status this tick; 0 means "no attack" and also indicates an unmatched row
+        private int roundMultiplier;  // the current attack bonus based on round status
         private Queue<PolyominoShapeEnum.PolyominoShape> upcomingPolyominoes;  // the shapes of all upcoming polyominoes (not generated onto the board yet)
         private PolyominoScript controllablePolyomino;  // current polyomino that is falling under player control (not due to attack)
         private List<PolyominoScript> fallingPolyominos;  // all polyominos that are currently falling outside player control
@@ -37,6 +38,7 @@ public class GameManagerScript : MonoBehaviour {
 
             fastDropState = false;
             fallingPolyominos = new List<PolyominoScript>();
+            roundMultiplier = roundDisparityMultipliers[0];
 
             grid = new BlockScript[boardHeight, boardWidth];  // automatically initializes to null
             attackTotals = new int[boardHeight];  // automatically initializes to 0s
@@ -131,6 +133,10 @@ public class GameManagerScript : MonoBehaviour {
         /// <returns>Integer array of length boardHeight, with each element being the number of blocks to be sent next tick as a result of that row (0 if not matched).</returns>
         public int[] GetAttackTotals() {
             return (int[])(attackTotals.Clone());
+        }
+
+        public int GetRoundMultiplier() {
+            return roundMultiplier;
         }
 
 
@@ -449,7 +455,7 @@ public class GameManagerScript : MonoBehaviour {
 
 
     /// <summary>
-    /// Balancing controls - know about them, but other scripts don't need to use them.
+    /// Balancing controls - know about them, but other scripts don't need to use them (at least not directly).
     /// </summary>
 
     // Balancing control for number of upcoming polyominoes to display per player.
@@ -466,6 +472,10 @@ public class GameManagerScript : MonoBehaviour {
     // Controls how powerful attacks are at each row height (how many blocks they send, before round-based multipliers).
     private static int[] attackStrengths = {10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29};  // set up individually rather than as multipliers for individual tweaking
 
+    // Controls for the round system.
+    private static int numRoundsToWin = 3;  // effectively best of numRoundsToWin * 2 - 1
+    private static int[] roundDisparityMultipliers = {1, 2, 3};  // multiplier to all attack strengths for the player who is behind
+
 
     /// <summary>
     /// For class functionality only.
@@ -477,9 +487,27 @@ public class GameManagerScript : MonoBehaviour {
     private double timeSinceLastTick;
     private double timeSinceLastFastDrop;
 
+    // Players' round win counts.
+    private int[] roundsWon;
 
-	// Use this for initialization
-	void Start () {
+
+    /// <summary>
+    /// Accessors for use by other scripts.
+    /// </summary>
+    int GetNumRoundsToWin() {
+        return numRoundsToWin;
+    }
+    int GetPlayerRoundsWon(int player) {
+        return roundsWon[player - 1];
+    }
+
+
+    /// <summary>
+    /// Helper functions.
+    /// </summary>
+
+    // Use this for initialization
+    void Start () {
         prng = new System.Random();
         
         // Assuming for simplicity that (0, 0) is at the bottom of the boards and centered between them.
@@ -488,6 +516,8 @@ public class GameManagerScript : MonoBehaviour {
 
         timeSinceLastTick = 0.0;
         timeSinceLastFastDrop = 0.0;
+
+        roundsWon = new int[2];  // automatically initializes to 0
     }
 	
     // Choose a new random polyomino to queue.  Here in case we want both players to draw from a shared bag as another point of competition.
