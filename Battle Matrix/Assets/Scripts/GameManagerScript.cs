@@ -603,6 +603,8 @@ public class GameManagerScript : MonoBehaviour {
 
     private double timeSinceLastTick;
     private double timeSinceLastFastDrop;
+    private double timeToNextRound;  // between rounds, countdown timer
+    private bool runTicks;  // should ticks be run for the current round?
 
     // Players' round win counts.
     private int[] roundsWon;
@@ -633,6 +635,8 @@ public class GameManagerScript : MonoBehaviour {
         player1 = new PlayerBoard(this, new Vector2(-15, 0), roundDisparityMultipliers[0]);
         player2 = new PlayerBoard(this, new Vector2(5, 0), roundDisparityMultipliers[0]);
 
+        runTicks = true;
+        timeToNextRound = 0.0;
         timeSinceLastTick = 0.0;
         timeSinceLastFastDrop = 0.0;
 
@@ -652,10 +656,6 @@ public class GameManagerScript : MonoBehaviour {
         timeSinceLastTick += Time.deltaTime;
 
         if (timeSinceLastTick >= tickLength) {  // time for the next tick
-            // reset timer first to avoid repeat ticks from Unity Update() spamming
-            timeSinceLastTick -= tickLength;  // carryover-aware timer reset
-            timeSinceLastFastDrop -= (tickLength / fastDropMultiplier);  // must also reset fast drop, as its update is included in a tick update (no double dropping)
-
             // send over attacks from last tick, to be processed this tick
             player1.ReceiveAttack(attacksToSend[1]);
             player2.ReceiveAttack(attacksToSend[0]);
@@ -673,8 +673,18 @@ public class GameManagerScript : MonoBehaviour {
 
             // check for round losses
             if (player1.GetLossStatus() || player2.GetLossStatus()) {
+                // be careful of potential draws!
+                if (player1.GetLossStatus() && !(player2.GetLossStatus())) roundsWon[1]++;
+                if (player2.GetLossStatus() && !(player1.GetLossStatus())) roundsWon[0]++;
+
+                // regardless of draw / win, no further ticks for this round should be carried out
+
+
 
             }
+
+            timeSinceLastTick -= tickLength;  // carryover-aware timer reset
+            timeSinceLastFastDrop -= (tickLength / fastDropMultiplier);  // must also reset fast drop, as its update is included in a tick update (no double dropping)
         }
 
         // implicit else with the exception of extremely slow framerates, which we want
@@ -684,5 +694,6 @@ public class GameManagerScript : MonoBehaviour {
             timeSinceLastFastDrop -= (tickLength / fastDropMultiplier);  // carryover-aware timer reset
         }
 	}
+
 
 }
