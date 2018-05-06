@@ -150,15 +150,23 @@ public class GameManagerScript : MonoBehaviour {
             // Drop any polyominos that are falling outside player control.
             DropAllFallingPolyominos();
 
-            // Generate all blocks from attacks received.
-            if (attackReceived != 0) {
-                GenerateAttackPolyominos();
+            // In case the controllable polyomino was destroyed due to attack, generate a new one once the blocks have stopped falling.
+            if (controllablePolyomino == null) {
+                if (fallingPolyominos.Count == 0) GenerateNextControllablePolyomino();
             }
 
-            // Always drop the polyomino, but only lock it if it can't move.
-            if (!(DropPolyomino(controllablePolyomino))) {  // lock it and generate a new one
+            // Always drop the polyomino if it exists, but only lock it if it can't move.
+            if ((controllablePolyomino != null) && !(DropPolyomino(controllablePolyomino))) {  // lock it and generate a new one
                 LockPolyomino(controllablePolyomino);  // after this the old polyomino is no longer valid
                 GenerateNextControllablePolyomino();
+            }
+
+            // Generate all blocks from attacks received.
+            if (attackReceived != 0) {
+                if (controllablePolyomino != null) RemovePolyomino(controllablePolyomino);  // lose current polyomino, both as part of the attack and to keep it from getting in the way
+                controllablePolyomino = null;
+
+                GenerateAttackPolyominos();
             }
 
             // Check for matched rows.
@@ -406,6 +414,16 @@ public class GameManagerScript : MonoBehaviour {
             Destroy(polyomino.gameObject);
         }
 
+        // Removes polyomino and its contents from the world and grid.
+        private void RemovePolyomino(PolyominoScript polyomino) {
+            DeregisterPolyomino(polyomino);
+            foreach (BlockScript block in polyomino.memberBlocks) {
+                Destroy(block.gameObject);
+            }
+            polyomino.memberBlocks.Clear();
+            Destroy(polyomino.gameObject);
+        }
+
         // Flags all matched rows and sets block states accordingly.
         private void FindMatchedRows() {
             // check each row individually
@@ -591,9 +609,6 @@ public class GameManagerScript : MonoBehaviour {
     // Players' attacks to send over to opponents.
     private int[] attacksToSend;
 
-    // To shield the game logic from Unity's update spamming.
-    private bool isUpdating;
-
 
     /// <summary>
     /// Accessors for use by other scripts.
@@ -623,8 +638,6 @@ public class GameManagerScript : MonoBehaviour {
 
         roundsWon = new int[2];  // automatically initializes to 0
         attacksToSend = new int[2];  // automatically initializes to 0
-
-        isUpdating = false;
     }
 	
     // Choose a new random polyomino to queue.  Here in case we want both players to draw from a shared bag as another point of competition.
