@@ -1,5 +1,7 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 // Make sure to use the block states in the same way as other scripts.
@@ -22,8 +24,12 @@ public class GameManagerScript : MonoBehaviour {
         private bool fastDropState;  // does the player currently have fast drop on?
 
         private BlockScript[,] grid;  // the board of blocks
+
         private int[] attackTotals;  // the number of blocks that will be sent next tick based on each row's status this tick; 0 means "no attack" and also indicates an unmatched row
         private int roundMultiplier;  // the current attack bonus based on round status
+        private int attackReceived;  // the number of blocks to place on the board this tick due to attacks
+        private bool hasLost;  // has this player lost the round?
+
         private Queue<PolyominoShapeEnum.PolyominoShape> upcomingPolyominoes;  // the shapes of all upcoming polyominoes (not generated onto the board yet)
         private PolyominoScript controllablePolyomino;  // current polyomino that is falling under player control (not due to attack)
         private List<PolyominoScript> fallingPolyominos;  // all polyominos that are currently falling outside player control
@@ -31,14 +37,16 @@ public class GameManagerScript : MonoBehaviour {
         private delegate bool MoveAction(PolyominoScript polyomino);
 
 
-        public PlayerBoard(GameManagerScript manager, Vector2 offset) {
+        public PlayerBoard(GameManagerScript manager, Vector2 offset, int multiplier) {
 
             gameManager = manager;
             boardOffset = offset;
+            roundMultiplier = multiplier;
 
             fastDropState = false;
+            hasLost = false;
             fallingPolyominos = new List<PolyominoScript>();
-            roundMultiplier = roundDisparityMultipliers[0];
+            attackReceived = 0;
 
             grid = new BlockScript[boardHeight, boardWidth];  // automatically initializes to null
             attackTotals = new int[boardHeight];  // automatically initializes to 0s
@@ -142,10 +150,23 @@ public class GameManagerScript : MonoBehaviour {
             // Drop any polyominos that are falling outside player control.
             DropAllFallingPolyominos();
 
-            // Always drop the polyomino, but only lock it if it can't move.
-            if (!(DropPolyomino(controllablePolyomino))) {  // lock it and generate a new one
+            // In case the controllable polyomino was destroyed due to attack, generate a new one once the blocks have stopped falling.
+            if (controllablePolyomino == null) {
+                if (fallingPolyominos.Count == 0) GenerateNextControllablePolyomino();
+            }
+
+            // Always drop the polyomino if it exists, but only lock it if it can't move.
+            if ((controllablePolyomino != null) && !(DropPolyomino(controllablePolyomino))) {  // lock it and generate a new one
                 LockPolyomino(controllablePolyomino);  // after this the old polyomino is no longer valid
                 GenerateNextControllablePolyomino();
+            }
+
+            // Generate all blocks from attacks received.
+            if (attackReceived != 0) {
+                if (controllablePolyomino != null) RemovePolyomino(controllablePolyomino);  // lose current polyomino, both as part of the attack and to keep it from getting in the way
+                controllablePolyomino = null;
+
+                GenerateAttackPolyominos();
             }
 
             // Check for matched rows.
@@ -159,8 +180,13 @@ public class GameManagerScript : MonoBehaviour {
             if (fastDropState) DropPolyomino(controllablePolyomino);  // drop the player's polyomino if needed, but do not lock
         }
 
+        internal void ReceiveAttack(int attack) {
+            attackReceived = attack;
+        }
 
-
+        internal bool GetLossStatus() {
+            return hasLost;
+        }
 
 
         /// <summary>
@@ -252,9 +278,9 @@ public class GameManagerScript : MonoBehaviour {
             return new Vector2Int((int)(block.transform.position.x - boardOffset.x), (int)(block.transform.position.y - boardOffset.y));
         }
 
-        // Call only when losing a round.
+        // Call only when losing a round.  Safe to call multiple times in a tick if the round is lost for multiple reasons simultaneously.
         private void LoseRound() {
-
+            hasLost = true;
         }
 
         // Attempts to drop a polyomino one grid row, respecting collision and leaving the polyomino in place on failure.  Returns true iff successful.
@@ -278,8 +304,7 @@ public class GameManagerScript : MonoBehaviour {
             // get bounding box of polyomino
             Vector2Int bottomLeft = FindGridLocationOfBlock(polyomino.memberBlocks[0]);
             Vector2Int topRight = FindGridLocationOfBlock(polyomino.memberBlocks[0]);  // cannot just make another reference to bottomLeft!
-            foreach (BlockScript block in polyomino.memberBlocks)
-            {
+            foreach (BlockScript block in polyomino.memberBlocks) {
                 Vector2Int location = FindGridLocationOfBlock(block);
 
                 // must check for expansion of each coordinate; Max and Min do two comparisons each
@@ -298,8 +323,7 @@ public class GameManagerScript : MonoBehaviour {
                 List<Vector2Int> rotateLocations = new List<Vector2Int>();
 
                 // "move" each block individually
-                foreach (BlockScript block in poly.memberBlocks)
-                {
+                foreach (BlockScript block in poly.memberBlocks) {
                     // Where would this block rotate to?
                     // Each coordinate is of the form (offset from pivot) + pivot
                     Vector2Int newGridLocation = new Vector2Int(Mathf.RoundToInt(direction * (FindGridLocationOfBlock(block).y - pivot.y) + pivot.x), Mathf.RoundToInt((- direction) * (FindGridLocationOfBlock(block).x - pivot.x) + pivot.y));
@@ -308,8 +332,7 @@ public class GameManagerScript : MonoBehaviour {
 
                 bool rotateIsPossible = CanInsertBlocksAtLocations(rotateLocations);
                 // Actually move the blocks clockwise in the world, setting up for RegisterPolyomino to move them in the grid.
-                if (rotateIsPossible)
-                {
+                if (rotateIsPossible) {
                     MoveBlocksToGridLocations(poly.memberBlocks, rotateLocations);
                 }
                 return rotateIsPossible;
@@ -334,7 +357,7 @@ public class GameManagerScript : MonoBehaviour {
         private void DeregisterPolyomino(PolyominoScript polyomino) {
             foreach (BlockScript block in polyomino.memberBlocks) {
                 Vector2Int gridLocation = FindGridLocationOfBlock(block);
-                if (!(Object.ReferenceEquals(grid[gridLocation.y, gridLocation.x], block))) { // should never occur
+                if (!(System.Object.ReferenceEquals(grid[gridLocation.y, gridLocation.x], block))) { // should never occur
                     Debug.Log("Block not found where expected!");
                 } else {
                     grid[gridLocation.y, gridLocation.x] = null;
@@ -391,6 +414,16 @@ public class GameManagerScript : MonoBehaviour {
             Destroy(polyomino.gameObject);
         }
 
+        // Removes polyomino and its contents from the world and grid.
+        private void RemovePolyomino(PolyominoScript polyomino) {
+            DeregisterPolyomino(polyomino);
+            foreach (BlockScript block in polyomino.memberBlocks) {
+                Destroy(block.gameObject);
+            }
+            polyomino.memberBlocks.Clear();
+            Destroy(polyomino.gameObject);
+        }
+
         // Flags all matched rows and sets block states accordingly.
         private void FindMatchedRows() {
             // check each row individually
@@ -410,7 +443,7 @@ public class GameManagerScript : MonoBehaviour {
                         grid[row, column].SetState(BlockStateEnum.BlockState.Matched);
                     }
 
-                    attackTotals[row] = attackStrengths[row];  // calculate number of blocks to send and indicate status for clearing next tick
+                    attackTotals[row] = attackStrengths[row] * roundMultiplier;  // calculate number of blocks to send and indicate status for clearing next tick
                 }
             }
         }
@@ -481,6 +514,41 @@ public class GameManagerScript : MonoBehaviour {
             };
             fallingPolyominos.ForEach(dropper);
         }
+
+        private void GenerateAttackPolyominos() {
+            int blocksToGenerate = attackReceived;
+            attackReceived = 0;  // prevents call spamming
+
+            int[] nextBlockHeights = Enumerable.Repeat(boardHeight - 1, boardWidth).ToArray();  // next "free" height for each column
+            PolyominoScript[] attackPolyominos = Enumerable.Repeat((PolyominoScript)null, boardWidth).ToArray();  // doing this here avoids generating unnecessary extra polyominos
+
+            // generate each block individually to allow per-block processing
+            while (blocksToGenerate > 0) {
+                int column = gameManager.prng.Next(boardWidth);  // the column to put the block in
+
+                // generate new polyomino if needed
+                if (attackPolyominos[column] == null) {
+                    attackPolyominos[column] = ((GameObject)Instantiate(gameManager.polyominoPrefab)).GetComponent<PolyominoScript>();
+                    attackPolyominos[column].memberBlocks = new List<BlockScript>();
+                    fallingPolyominos.Add(attackPolyominos[column]);
+                }
+
+                // generate block
+                BlockScript block = GenerateBlockInPlace(new Vector2Int(column, nextBlockHeights[column]));
+                // register to polyomino
+                attackPolyominos[column].memberBlocks.Add(block);
+                block.SetPolyomino(attackPolyominos[column]);
+                // check grid for colliding block
+                if (grid[nextBlockHeights[column], column] == null) {
+                    grid[nextBlockHeights[column], column] = block;
+                } else {
+                    LoseRound();
+                }
+
+                nextBlockHeights[column]--;
+                blocksToGenerate--;
+            }
+        }
     }
 
     /// <summary>
@@ -535,9 +603,13 @@ public class GameManagerScript : MonoBehaviour {
 
     private double timeSinceLastTick;
     private double timeSinceLastFastDrop;
+    private double timeToNextRound;  // between rounds, countdown timer
+    private bool runTicks;  // should ticks be run for the current round?
 
     // Players' round win counts.
     private int[] roundsWon;
+    // Players' attacks to send over to opponents.
+    private int[] attacksToSend;
 
 
     /// <summary>
@@ -560,13 +632,16 @@ public class GameManagerScript : MonoBehaviour {
         prng = new System.Random();
         
         // Assuming for simplicity that (0, 0) is at the bottom of the boards and centered between them.
-        player1 = new PlayerBoard(this, new Vector2(-15, 0));
-        player2 = new PlayerBoard(this, new Vector2(5, 0));
+        player1 = new PlayerBoard(this, new Vector2(-15, 0), roundDisparityMultipliers[0]);
+        player2 = new PlayerBoard(this, new Vector2(5, 0), roundDisparityMultipliers[0]);
 
+        runTicks = true;
+        timeToNextRound = 0.0;
         timeSinceLastTick = 0.0;
         timeSinceLastFastDrop = 0.0;
 
         roundsWon = new int[2];  // automatically initializes to 0
+        attacksToSend = new int[2];  // automatically initializes to 0
     }
 	
     // Choose a new random polyomino to queue.  Here in case we want both players to draw from a shared bag as another point of competition.
@@ -581,8 +656,33 @@ public class GameManagerScript : MonoBehaviour {
         timeSinceLastTick += Time.deltaTime;
 
         if (timeSinceLastTick >= tickLength) {  // time for the next tick
+            // send over attacks from last tick, to be processed this tick
+            player1.ReceiveAttack(attacksToSend[1]);
+            player2.ReceiveAttack(attacksToSend[0]);
+
             player1.DoTick();
             player2.DoTick();
+
+            // get attacks from this tick, to be sent over next tick
+            attacksToSend[0] = 0;
+            attacksToSend[1] = 0;
+            for (int i = 0; i < boardHeight; i++) {
+                attacksToSend[0] += player1.GetAttackTotals()[i];
+                attacksToSend[1] += player2.GetAttackTotals()[i];
+            }
+
+            // check for round losses
+            if (player1.GetLossStatus() || player2.GetLossStatus()) {
+                // be careful of potential draws!
+                if (player1.GetLossStatus() && !(player2.GetLossStatus())) roundsWon[1]++;
+                if (player2.GetLossStatus() && !(player1.GetLossStatus())) roundsWon[0]++;
+
+                // regardless of draw / win, no further ticks for this round should be carried out
+
+
+
+            }
+
             timeSinceLastTick -= tickLength;  // carryover-aware timer reset
             timeSinceLastFastDrop -= (tickLength / fastDropMultiplier);  // must also reset fast drop, as its update is included in a tick update (no double dropping)
         }
@@ -594,5 +694,6 @@ public class GameManagerScript : MonoBehaviour {
             timeSinceLastFastDrop -= (tickLength / fastDropMultiplier);  // carryover-aware timer reset
         }
 	}
+
 
 }

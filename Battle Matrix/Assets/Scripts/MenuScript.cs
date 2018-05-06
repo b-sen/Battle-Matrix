@@ -24,7 +24,8 @@ public class MenuScript : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-        
+        startButton.onClick.AddListener(GoToPlay);
+        creditsButton.onClick.AddListener(SwitchMenu);
     }
 
     void GoToPlay()
