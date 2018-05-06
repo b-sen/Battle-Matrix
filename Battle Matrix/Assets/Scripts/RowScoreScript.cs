@@ -5,26 +5,37 @@ using UnityEngine.UI;
 
 public class RowScoreScript : MonoBehaviour {
 
+    public struct PlayerScore
+    {
+        public int[] attacks;
+        public List<Text> rows;
+        
+        public int roundsWon;
+        public int multiplier;
+        public Text roundsText;
+        public Text multiText;
+
+    }
+
+
     public GameManagerScript gm;
 
-    GameManagerScript.PlayerBoard pb1;
-    GameManagerScript.PlayerBoard pb2;
+    GameManagerScript.PlayerBoard[] pb;
 
-    List<Text> p1Rows;
-    List<Text> p2Rows;
-
-    int[] p1Attacks;
-    int[] p2Attacks;
+    PlayerScore[] ps;
 
     // Use this for initialization
     void Start () {
 
+        ps[0] = new PlayerScore();
+        ps[1] = new PlayerScore();
+
         if (gm)
         {
             //Debug.Log("test");
-            pb1 = gm.player1;
+            pb[0] = gm.player1;
             //Debug.Log("test 1:" + (pb1 != null) + "-" + (gm.player1 != null));
-            pb2 = gm.player2;
+            pb[1] = gm.player2;
             //Debug.Log("test 2:" + (pb2 != null) + "-" + (gm.player2 != null));
         }
 
@@ -33,32 +44,32 @@ public class RowScoreScript : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 
-        if (pb1 == null)
-            pb1 = gm.player1;
-        if (pb2 == null)
-            pb2 = gm.player2;
+        if (pb[0] == null)
+            pb[0] = gm.player1;
+        if (pb[1] == null)
+            pb[1] = gm.player2;
 
-        p1Attacks = pb1.GetAttackTotals();
-        p2Attacks = pb1.GetAttackTotals();
 
-        for (int i = 0; i < p1Attacks.Length; i++)
+
+        for(int i = 0; i < 2; i++)
         {
-            if (p1Rows[i])
+            ps[i].attacks = pb[i].GetAttackTotals();
+            ps[i].multiplier = pb[i].GetRoundMultiplier();
+            ps[i].roundsWon = gm.GetPlayerRoundsWon(i + 1);
+
+            ps[i].multiText.text = "";
+            ps[i].roundsText.text = "";
+
+            for (int j = 0; j < ps[i].attacks.Length; j++)
             {
-                if (p1Attacks[i] == 0)
-                    p1Rows[i].text = "";
-                else
-                    p1Rows[i].text = p1Attacks[i].ToString();
-            }
-        }
-        for (int i = 0; i < p2Attacks.Length; i++)
-        {
-            if (p2Rows[i])
-            {
-                if (p2Attacks[i] == 0)
-                    p2Rows[i].text = "";
-                else
-                    p2Rows[i].text = p2Attacks[i].ToString();
+                if(ps[i].rows[j])
+                {
+                    if (ps[i].attacks[j] == 0)
+                        ps[i].rows[j].text = "";
+                    else
+                        ps[i].rows[j].text = ps[i].attacks[j].ToString();
+                }
+                
             }
         }
 
