@@ -46,6 +46,7 @@ public class BlockScript : MonoBehaviour {
         Debug.Log(size_x + ", " + size_y);
 
 
+
     }
 
     public PolyominoScript GetPolyomino() {
