@@ -432,7 +432,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: 'Multiplier: _______'
+  m_Text: 'Multiplier:'
 --- !u!222 &201740981
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -2784,7 +2784,9 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: 'Rounds Won: ______'
+  m_Text: 'Rounds Won:
+
+'
 --- !u!222 &888322531
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -3193,7 +3195,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: 'Rounds Won: ______'
+  m_Text: 'Rounds Won:'
 --- !u!222 &1083547848
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -5146,7 +5148,9 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: 'Multiplier: _______'
+  m_Text: 'Multiplier:
+
+'
 --- !u!222 &1995271641
 CanvasRenderer:
   m_ObjectHideFlags: 0
