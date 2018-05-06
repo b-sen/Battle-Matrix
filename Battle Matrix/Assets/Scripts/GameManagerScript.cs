@@ -124,6 +124,13 @@ public class GameManagerScript : MonoBehaviour {
             return new List<PolyominoShapeEnum.PolyominoShape>(upcomingPolyominoes.ToArray());
         }
 
+        /// <summary>
+        /// Use this to read blocks about to be sent as attacks.
+        /// </summary>
+        /// <returns>Integer array of length boardHeight, with each element being the number of blocks to be sent next tick as a result of that row (0 if not matched).</returns>
+        public int[] GetAttackTotals() {
+            return (int[])(attackTotals.Clone());
+        }
 
         internal void DoTick() {
             /// This ordering of checks ensures that matched rows are always shown for a tick and that polyominoes locked into place can immediately be considered for matching.
