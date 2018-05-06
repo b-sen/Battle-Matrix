@@ -13,6 +13,9 @@ public class BlockScript : MonoBehaviour {
     public Sprite lockedSprite;
     public Sprite matchedSprite;
 
+    float size_x;
+    float size_y;
+
     // Use this for initialization
     void Start () {
         this.SetState(BlockStateEnum.BlockState.Falling);  // default state for newly created blocks
@@ -37,6 +40,13 @@ public class BlockScript : MonoBehaviour {
                 break;
 
         }
+
+        size_x = transform.GetComponent<SpriteRenderer>().bounds.size.x;
+        size_y = transform.GetComponent<SpriteRenderer>().bounds.size.y;
+        Debug.Log(size_x + ", " + size_y);
+
+
+
     }
 
     public PolyominoScript GetPolyomino() {

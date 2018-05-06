@@ -8,6 +8,9 @@ using UnityEngine;
 // Make sure to use the polyominoes in the same way as other scripts.
 [RequireComponent(typeof(PolyominoShapeEnum))]
 
+
+
+
 /// <summary>
 /// In charge of all game logic.
 /// </summary>
@@ -19,17 +22,26 @@ public class GameManagerScript : MonoBehaviour {
         private bool fastDropState;  // does the player currently have fast drop on?
 
         private BlockScript[,] grid;  // the board of blocks
+        private int[] attackTotals;  // the number of blocks that will be sent next tick based on each row's status this tick; 0 means "no attack" and also indicates an unmatched row
+        private int roundMultiplier;  // the current attack bonus based on round status
         private Queue<PolyominoShapeEnum.PolyominoShape> upcomingPolyominoes;  // the shapes of all upcoming polyominoes (not generated onto the board yet)
         private PolyominoScript controllablePolyomino;  // current polyomino that is falling under player control (not due to attack)
+        private List<PolyominoScript> fallingPolyominos;  // all polyominos that are currently falling outside player control
+
+        private delegate bool MoveAction(PolyominoScript polyomino);
 
 
         public PlayerBoard(GameManagerScript manager, Vector2 offset) {
+
             gameManager = manager;
             boardOffset = offset;
 
             fastDropState = false;
+            fallingPolyominos = new List<PolyominoScript>();
+            roundMultiplier = roundDisparityMultipliers[0];
 
             grid = new BlockScript[boardHeight, boardWidth];  // automatically initializes to null
+            attackTotals = new int[boardHeight];  // automatically initializes to 0s
             upcomingPolyominoes = new Queue<PolyominoShapeEnum.PolyominoShape>();
             while (upcomingPolyominoes.Count < numUpcomingPolyominoes) {  // fully populate queue
                 upcomingPolyominoes.Enqueue(gameManager.ChoosePolyomino());
@@ -50,10 +62,55 @@ public class GameManagerScript : MonoBehaviour {
 
         }
         public void SlideLeft() {
+            MoveAction slider = (poly) => {
+                List<Vector2Int> slideLocations = new List<Vector2Int>();
 
+                // "move" each block individually
+                foreach (BlockScript block in poly.memberBlocks) {
+                    // Where would this block slide to?
+                    Vector2Int newGridLocation = FindGridLocationOfBlock(block);
+                    newGridLocation.x -= 1;
+                    slideLocations.Add(newGridLocation);
+                }
+
+                bool slideIsPossible = CanInsertBlocksAtLocations(slideLocations);
+                // Actually move the blocks left in the world, setting up for RegisterPolyomino to move them in the grid.
+                if (slideIsPossible) {
+                    foreach (BlockScript block in poly.memberBlocks) {
+                        block.transform.position = new Vector3(block.transform.position.x - 1, block.transform.position.y, block.transform.position.z);  // no, Unity does not allow just setting the x component
+                    }
+                }
+                return slideIsPossible;
+            };
+
+            AttemptWithPolyominoUnregistered(controllablePolyomino, slider);
         }
         public void SlideRight() {
+            MoveAction slider = (poly) => {
+                List<Vector2Int> slideLocations = new List<Vector2Int>();
 
+                // "move" each block individually
+                foreach (BlockScript block in poly.memberBlocks)
+                {
+                    // Where would this block slide to?
+                    Vector2Int newGridLocation = FindGridLocationOfBlock(block);
+                    newGridLocation.x += 1;
+                    slideLocations.Add(newGridLocation);
+                }
+
+                bool slideIsPossible = CanInsertBlocksAtLocations(slideLocations);
+                // Actually move the blocks right in the world, setting up for RegisterPolyomino to move them in the grid.
+                if (slideIsPossible)
+                {
+                    foreach (BlockScript block in poly.memberBlocks)
+                    {
+                        block.transform.position = new Vector3(block.transform.position.x + 1, block.transform.position.y, block.transform.position.z);  // no, Unity does not allow just setting the x component
+                    }
+                }
+                return slideIsPossible;
+            };
+
+            AttemptWithPolyominoUnregistered(controllablePolyomino, slider);
         }
         // Unlike the other movement actions, fast drop is locked to the tick system and therefore must be turned on and off.
         // This also allows players to hold down their fast drop button in order to get continuous fast drop.
@@ -70,16 +127,43 @@ public class GameManagerScript : MonoBehaviour {
             return new List<PolyominoShapeEnum.PolyominoShape>(upcomingPolyominoes.ToArray());
         }
 
+        /// <summary>
+        /// Use this to read blocks about to be sent as attacks.
+        /// </summary>
+        /// <returns>Integer array of length boardHeight, with each element being the number of blocks to be sent next tick as a result of that row (0 if not matched).</returns>
+        public int[] GetAttackTotals() {
+            return (int[])(attackTotals.Clone());
+        }
+
+        public int GetRoundMultiplier() {
+            return roundMultiplier;
+        }
+
 
         internal void DoTick() {
+            /// This ordering of checks ensures that matched rows are always shown for a tick and that polyominoes locked into place can immediately be considered for matching.
+
+            // Clear previously matched rows.
+            SweepMatchedRows();
+
+            // Drop any polyominos that are falling outside player control.
+            DropAllFallingPolyominos();
+
             // Always drop the polyomino, but only lock it if it can't move.
             if (!(DropPolyomino(controllablePolyomino))) {  // lock it and generate a new one
-
+                LockPolyomino(controllablePolyomino);  // after this the old polyomino is no longer valid
+                GenerateNextControllablePolyomino();
             }
+
+            // Check for matched rows.
+            FindMatchedRows();
         }
 
         internal void DoFastDrop() {
-            if (fastDropState) DropPolyomino(controllablePolyomino);
+            // Drop any polyominos that are falling outside player control.
+            DropAllFallingPolyominos();
+
+            if (fastDropState) DropPolyomino(controllablePolyomino);  // drop the player's polyomino if needed, but do not lock
         }
 
 
@@ -95,6 +179,7 @@ public class GameManagerScript : MonoBehaviour {
             upcomingPolyominoes.Enqueue(gameManager.ChoosePolyomino());  // immediately bring the queue up to full size
 
             controllablePolyomino = ((GameObject)Instantiate(gameManager.polyominoPrefab)).GetComponent<PolyominoScript>();  // new empty polyomino to fill
+            controllablePolyomino.memberBlocks = new List<BlockScript>();
             List<Vector2Int> newBlockLocations;
 
             // Specifies the blocks to place and spawning points for the given polyomino shape.
@@ -170,20 +255,30 @@ public class GameManagerScript : MonoBehaviour {
 
         // Attempts to drop a polyomino one grid row, respecting collision and leaving the polyomino in place on failure.  Returns true iff successful.
         private bool DropPolyomino(PolyominoScript polyomino) {
+            MoveAction dropper = (poly) => {
+                bool dropIsPossible = CanDropPolyomino(poly);
+                // Actually move the blocks down in the world, setting up for RegisterPolyomino to move them in the grid.
+                if (dropIsPossible) {
+                    foreach (BlockScript block in poly.memberBlocks) {
+                        block.transform.position = new Vector3(block.transform.position.x, block.transform.position.y - 1, block.transform.position.z);  // no, Unity does not allow just setting the y component
+                    }
+                }
+                return dropIsPossible;
+            };
+
+            return AttemptWithPolyominoUnregistered(polyomino, dropper);
+        }
+
+
+        private bool AttemptWithPolyominoUnregistered(PolyominoScript polyomino, MoveAction actionToAttempt) {
             /// Normally blocks in a moving polyomino are tracked in two places: the polyomino and the board.
             /// Here we take advantage of this by temporarily removing those blocks from the board (because they won't collide with each other) to aid collision checking.
             DeregisterPolyomino(polyomino);
 
-            bool dropIsPossible = CanDropPolyomino(polyomino);
-            // Actually move the blocks down in the world, setting up for RegisterPolyomino to move them in the grid.
-            if (dropIsPossible) {
-                foreach (BlockScript block in polyomino.memberBlocks) {
-                    block.transform.position = new Vector3(block.transform.position.x, block.transform.position.y - 1, block.transform.position.z);  // no, Unity does not allow just setting the y component
-                }
-            }
+            bool actionSuccess = actionToAttempt(polyomino);
 
-            RegisterPolyomino(polyomino);  // regardless of how the drop went, return the blocks to the board; will take care of moving the blocks in the grid
-            return dropIsPossible;
+            RegisterPolyomino(polyomino);  // regardless of how the action went, return the blocks to the board; will take care of moving the blocks in the grid
+            return actionSuccess;
         }
 
         // Removes all blocks in polyomino from the board; useful largely for temporary changes to perform calculations that want to not consider some polyominoes.
@@ -238,6 +333,105 @@ public class GameManagerScript : MonoBehaviour {
             }
             return canInsertBlocks;
         }
+
+        // Changes block states as needed for all blocks in polyomino, and destroys the polyomino as no longer needed.
+        private void LockPolyomino(PolyominoScript polyomino) {
+            foreach (BlockScript block in polyomino.memberBlocks) {
+                block.SetState(BlockStateEnum.BlockState.Locked);
+            }
+            Destroy(polyomino.gameObject);
+        }
+
+        // Flags all matched rows and sets block states accordingly.
+        private void FindMatchedRows() {
+            // check each row individually
+            for (int row = 0; row < boardHeight; row++) {
+                // to be matched, a row must consist of only locked blocks
+                bool isMatched = true;
+                for (int column = 0; column < boardWidth; column++) {
+                    // Is there a block at this position?  If so, is it locked?
+                    if ((grid[row, column] == null) || (grid[row, column].GetState() != BlockStateEnum.BlockState.Locked)) {
+                        isMatched = false;
+                    }
+                }
+
+                if (isMatched) {
+                    // change all the block states to reflect the matched row
+                    for (int column = 0; column < boardWidth; column++) {
+                        grid[row, column].SetState(BlockStateEnum.BlockState.Matched);
+                    }
+
+                    attackTotals[row] = attackStrengths[row];  // calculate number of blocks to send and indicate status for clearing next tick
+                }
+            }
+        }
+
+        // Clears out all matched rows.
+        private void SweepMatchedRows() {
+            int lowestSweptRow = boardHeight + 1;  // obviously invalid as is; for later use to determine if any blocks need to fall as a result of matching
+
+            // check each row individually
+            for (int row = 0; row < boardHeight; row++) {
+                if (attackTotals[row] != 0) {
+                    // destroy all the blocks and remove them from the grid; matched blocks cannot be in polyominoes so this is fine to run
+                    for (int column = 0; column < boardWidth; column++) {
+                        Destroy(grid[row, column].gameObject);
+                        grid[row, column] = null;
+                    }
+
+                    // reset attack (and "row is matched") marker
+                    attackTotals[row] = 0;
+
+                    if (lowestSweptRow > row) {
+                        lowestSweptRow = row;  // log the row we need to check above for falling blocks as a result of matching
+                    }
+                }
+            }
+
+            // set up falling in all rows that have had their support removed
+            // "cascade mode" for now, as the simplest algorithm given the polyomino falling code
+            if (lowestSweptRow < boardHeight - 1) {  // if only the top row was matched, nothing needs to fall
+                // drop each column individually
+                for (int column = 0; column < boardWidth; column++) {
+                    // within this column, each contiguous group of blocks (disregarding all other columns) that is high enough to fall gets its own polyomino and falls independently
+                    PolyominoScript currentPolyomino = null;
+
+                    // ordering is deliberate, so that when the falls are checked for these the lowest will fall first (preventing unwanted collision)
+                    for (int row = lowestSweptRow + 1; row < boardHeight; row++) {
+                        if ((grid[row, column] != null) && (grid[row, column].GetState() == BlockStateEnum.BlockState.Locked)) {  // this block should fall
+                            // make a new polyomino if needed, and add it to the list of ones that should fall
+                            if (currentPolyomino == null) {
+                                currentPolyomino = ((GameObject)Instantiate(gameManager.polyominoPrefab)).GetComponent<PolyominoScript>();
+                                currentPolyomino.memberBlocks = new List<BlockScript>();
+                                fallingPolyominos.Add(currentPolyomino);
+                            }
+
+                            // this block should be in currentPolyomino, whether it was just created or not
+                            currentPolyomino.memberBlocks.Add(grid[row, column]);
+                            grid[row, column].SetPolyomino(currentPolyomino);
+
+                            // this block should know that it is now falling
+                            grid[row, column].SetState(BlockStateEnum.BlockState.Falling);
+                        } else {  // whether there's a block here or not, it ends the current polyomino by separating it from any blocks that should fall above
+                            currentPolyomino = null;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Drops (and locks as needed) all polyominos that are falling outside player control.
+        private void DropAllFallingPolyominos() {
+            // Using List.ForEach allows modification as we iterate, which is necessary for removing polyominos as they lock.
+            System.Action<PolyominoScript> dropper = (poly) => {
+                // Always drop the polyomino, but only lock it if it can't move.
+                if (!(DropPolyomino(poly))) {  // lock it and generate a new one
+                    fallingPolyominos.Remove(poly);  // remove before destruction, while we have the reference passed in
+                    LockPolyomino(poly);  // after this the old polyomino is no longer valid
+                }
+            };
+            fallingPolyominos.ForEach(dropper);
+        }
     }
 
     /// <summary>
@@ -261,7 +455,7 @@ public class GameManagerScript : MonoBehaviour {
 
 
     /// <summary>
-    /// Balancing controls - know about them, but other scripts don't need to use them.
+    /// Balancing controls - know about them, but other scripts don't need to use them (at least not directly).
     /// </summary>
 
     // Balancing control for number of upcoming polyominoes to display per player.
@@ -275,6 +469,13 @@ public class GameManagerScript : MonoBehaviour {
     private static double tickLength = 1.0;
     private static int fastDropMultiplier = 4;  // How much faster is fast drop than waiting for the block to fall on its own?
 
+    // Controls how powerful attacks are at each row height (how many blocks they send, before round-based multipliers).
+    private static int[] attackStrengths = {10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29};  // set up individually rather than as multipliers for individual tweaking
+
+    // Controls for the round system.
+    private static int numRoundsToWin = 3;  // effectively best of numRoundsToWin * 2 - 1
+    private static int[] roundDisparityMultipliers = {1, 2, 3};  // multiplier to all attack strengths for the player who is behind
+
 
     /// <summary>
     /// For class functionality only.
@@ -286,17 +487,37 @@ public class GameManagerScript : MonoBehaviour {
     private double timeSinceLastTick;
     private double timeSinceLastFastDrop;
 
+    // Players' round win counts.
+    private int[] roundsWon;
 
-	// Use this for initialization
-	void Start () {
+
+    /// <summary>
+    /// Accessors for use by other scripts.
+    /// </summary>
+    public int GetNumRoundsToWin() {
+        return numRoundsToWin;
+    }
+    public int GetPlayerRoundsWon(int player) {
+        return roundsWon[player - 1];
+    }
+
+
+    /// <summary>
+    /// Helper functions.
+    /// </summary>
+
+    // Use this for initialization
+    void Start () {
         prng = new System.Random();
-
+        
         // Assuming for simplicity that (0, 0) is at the bottom of the boards and centered between them.
         player1 = new PlayerBoard(this, new Vector2(-15, 0));
         player2 = new PlayerBoard(this, new Vector2(5, 0));
 
         timeSinceLastTick = 0.0;
         timeSinceLastFastDrop = 0.0;
+
+        roundsWon = new int[2];  // automatically initializes to 0
     }
 	
     // Choose a new random polyomino to queue.  Here in case we want both players to draw from a shared bag as another point of competition.

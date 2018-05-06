@@ -11,6 +11,7 @@ public class PlayerManager : MonoBehaviour {
         public string rotate;
         public string drop;
 
+        
         public List<GameObject> icons;
 
         public PlayerControls(string hz, string rt, string dr, List<GameObject> ic)
@@ -29,6 +30,10 @@ public class PlayerManager : MonoBehaviour {
     public List<GameObject> p1Icons;
     public List<GameObject> p2Icons;
 
+    public float delay = 0.5f;
+    float nextTime = 0.5f;
+    float currTime = 0f;
+
     public GameManagerScript gm;
 
     GameManagerScript.PlayerBoard pb1;
@@ -36,24 +41,34 @@ public class PlayerManager : MonoBehaviour {
 
     // Use this for initialization
     void Start () {
+        
         p1 = new PlayerControls("P1Horizontal", "P1Rotate", "P1Drop", p1Icons);
         p2 = new PlayerControls("P2Horizontal", "P2Rotate", "P2Drop", p2Icons);
 
         if (gm)
         {
-            Debug.Log("test");
+            //Debug.Log("test");
             pb1 = gm.player1;
-            Debug.Log("test 1:" + (pb1 != null) + "-" + (gm.player1 != null));
+            //Debug.Log("test 1:" + (pb1 != null) + "-" + (gm.player1 != null));
             pb2 = gm.player2;
-            Debug.Log("test 2:" + (pb2 != null) + "-" + (gm.player2 != null));
+            //Debug.Log("test 2:" + (pb2 != null) + "-" + (gm.player2 != null));
         }
         
     }
 	
 	// Update is called once per frame
 	void Update () {
+
+        currTime += Time.deltaTime;
+
+        if (pb1 == null)
+            pb1 = gm.player1;
+        if (pb2 == null)
+            pb2 = gm.player2;
+
         CheckInputs(p1, pb1);
         CheckInputs(p2, pb2);
+
     }
 
     void CheckInputs(PlayerControls player, GameManagerScript.PlayerBoard pb)
@@ -67,20 +82,28 @@ public class PlayerManager : MonoBehaviour {
         float rt = Input.GetAxis(player.rotate);
         float dr = Input.GetAxis(player.drop);
 
-        Debug.Log(pb != null);
+        //Debug.Log(pb != null);
 
         // Check Horizontal
         if (hz < 0)
         {
             player.icons[0].GetComponent<IconActivation>().Activation();
             player.icons[1].GetComponent<IconActivation>().Deactivation();
-            pb.SlideLeft();
+            if(currTime > nextTime)
+            {
+                nextTime = currTime + delay;
+                pb.SlideLeft();
+            }
         }
         else if (hz > 0)
         {
             player.icons[0].GetComponent<IconActivation>().Deactivation();
             player.icons[1].GetComponent<IconActivation>().Activation();
-            pb.SlideRight();
+            if (currTime > nextTime)
+            {
+                nextTime = currTime + delay;
+                pb.SlideRight();
+            }
         }
         else
         {
@@ -93,13 +116,21 @@ public class PlayerManager : MonoBehaviour {
         {
             player.icons[2].GetComponent<IconActivation>().Activation();
             player.icons[3].GetComponent<IconActivation>().Deactivation();
-            pb.RotateClockwise();
+            if (currTime > nextTime)
+            {
+                nextTime = currTime + delay;
+                pb.RotateClockwise();
+            }
         }
         else if (rt > 0)
         {
             player.icons[2].GetComponent<IconActivation>().Deactivation();
             player.icons[3].GetComponent<IconActivation>().Activation();
-            pb.RotateCounterClockwise();
+            if (currTime > nextTime)
+            {
+                nextTime = currTime + delay;
+                pb.RotateCounterClockwise();
+            }
         }
         else
         {
