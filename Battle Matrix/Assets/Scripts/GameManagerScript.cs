@@ -56,7 +56,6 @@ public class GameManagerScript : MonoBehaviour {
         /// The movement functions, which perform actions that are based directly on player input.  Call these from controls code.
         /// </summary>
         public void RotateClockwise() {
-
             RotatePolyomino(controllablePolyomino, 1);
         }
         public void RotateCounterClockwise() {
