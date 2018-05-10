@@ -188,6 +188,20 @@ public class GameManagerScript : MonoBehaviour {
             return hasLost;
         }
 
+        // Removes all blocks and other GameObjects this board is responsible for, so that they do not persist between rounds.  Use only when this board is about to become unused.
+        internal void Cleanup() {
+            // remove all polyominos, including their blocks
+            if (controllablePolyomino != null) RemovePolyomino(controllablePolyomino);
+            foreach(PolyominoScript polyomino in fallingPolyominos) {
+                RemovePolyomino(polyomino);
+            }
+
+            // remove all blocks on the board that are not part of polyominos
+            foreach (BlockScript block in grid) {  // automatically handles multidimensional iteration
+                if (block != null) Destroy(block.gameObject);
+            }
+        }
+
 
         /// <summary>
         /// Helper functions.
@@ -561,6 +575,10 @@ public class GameManagerScript : MonoBehaviour {
 
     public static int blockZLevel = 1;
 
+    // Assuming for simplicity that (0, 0) is at the bottom of the boards and centered between them.
+    private static Vector2 player1Offset = new Vector2(-15, 0);
+    private static Vector2 player2Offset = new Vector2(5, 0);
+
 
     /// <summary>
     /// Meant for use by other scripts as needed.
@@ -601,10 +619,14 @@ public class GameManagerScript : MonoBehaviour {
     // PRNG instance to use as needed for attacks and polyomino selection.
     private System.Random prng;
 
-    private double timeSinceLastTick;
-    private double timeSinceLastFastDrop;
-    private double timeToNextRound;  // between rounds, countdown timer
-    private bool runTicks;  // should ticks be run for the current round?
+    // Timing internals.
+    private double timeSinceLastTick;  // while a round is ongoing, time since the last game tick
+    private double timeSinceLastFastDrop;  // while a round is ongoing, time since the last "fast drop"
+    private bool runTicks;  // should ticks be run for the current round (if there is a round to run ticks for - otherwise false)?
+    private double timeToRoundStart;  // between / before rounds, countdown timer
+    private bool runCountdownToNextRound;  // should the countdown be run (can be false to display the previous results, or on match win)?
+    private double timeToBoardGeneration;  // remaining time to display previous boards for (before regenerating them for the next round)
+    private bool runBoardGenerationCountdown;  // not simply when neither of the others is on due to the indefinite victory display
 
     // Players' round win counts.
     private int[] roundsWon;
@@ -630,18 +652,18 @@ public class GameManagerScript : MonoBehaviour {
     // Use this for initialization
     void Start () {
         prng = new System.Random();
-        
-        // Assuming for simplicity that (0, 0) is at the bottom of the boards and centered between them.
-        player1 = new PlayerBoard(this, new Vector2(-15, 0), roundDisparityMultipliers[0]);
-        player2 = new PlayerBoard(this, new Vector2(5, 0), roundDisparityMultipliers[0]);
-
-        runTicks = true;
-        timeToNextRound = 0.0;
-        timeSinceLastTick = 0.0;
-        timeSinceLastFastDrop = 0.0;
 
         roundsWon = new int[2];  // automatically initializes to 0
         attacksToSend = new int[2];  // automatically initializes to 0
+        
+        player1 = new PlayerBoard(this, player1Offset, roundDisparityMultipliers[Mathf.Max(0, roundsWon[1] - roundsWon[0])]);
+        player2 = new PlayerBoard(this, player2Offset, roundDisparityMultipliers[Mathf.Max(0, roundsWon[0] - roundsWon[1])]);
+
+        runTicks = false;
+        timeToRoundStart = 3.0;
+        runCountdownToNextRound = true;
+        timeSinceLastTick = 0.0;
+        timeSinceLastFastDrop = 0.0;
     }
 	
     // Choose a new random polyomino to queue.  Here in case we want both players to draw from a shared bag as another point of competition.
@@ -650,50 +672,77 @@ public class GameManagerScript : MonoBehaviour {
     }
 
 
-	// Update is called once per frame
-	void Update () {
-        timeSinceLastFastDrop += Time.deltaTime;
-        timeSinceLastTick += Time.deltaTime;
+    // Update is called once per frame
+    void Update() {
+        if (runTicks) {  // round is ongoing
+            timeSinceLastFastDrop += Time.deltaTime;
+            timeSinceLastTick += Time.deltaTime;
 
-        if (timeSinceLastTick >= tickLength) {  // time for the next tick
-            // send over attacks from last tick, to be processed this tick
-            player1.ReceiveAttack(attacksToSend[1]);
-            player2.ReceiveAttack(attacksToSend[0]);
+            if (timeSinceLastTick >= tickLength) {  // time for the next tick
+                                                    // send over attacks from last tick, to be processed this tick
+                player1.ReceiveAttack(attacksToSend[1]);
+                player2.ReceiveAttack(attacksToSend[0]);
 
-            player1.DoTick();
-            player2.DoTick();
+                player1.DoTick();
+                player2.DoTick();
 
-            // get attacks from this tick, to be sent over next tick
-            attacksToSend[0] = 0;
-            attacksToSend[1] = 0;
-            for (int i = 0; i < boardHeight; i++) {
-                attacksToSend[0] += player1.GetAttackTotals()[i];
-                attacksToSend[1] += player2.GetAttackTotals()[i];
+                // get attacks from this tick, to be sent over next tick
+                attacksToSend[0] = 0;
+                attacksToSend[1] = 0;
+                for (int i = 0; i < boardHeight; i++) {
+                    attacksToSend[0] += player1.GetAttackTotals()[i];
+                    attacksToSend[1] += player2.GetAttackTotals()[i];
+                }
+
+                // check for round losses
+                if (player1.GetLossStatus() || player2.GetLossStatus()) {
+                    // be careful of potential draws!
+                    if (player1.GetLossStatus() && !(player2.GetLossStatus())) roundsWon[1]++;
+                    if (player2.GetLossStatus() && !(player1.GetLossStatus())) roundsWon[0]++;
+
+                    runTicks = false; // regardless of draw / win, no further ticks for this round should be carried out
+
+                    if (roundsWon.Max() < numRoundsToWin) {  // display current boards and trigger delayed set up for next round, since neither player has won the match
+                        runBoardGenerationCountdown = true;
+                        timeToBoardGeneration = 5.0;
+                    } else {  // trigger victory display
+
+                    }
+                }
+
+                timeSinceLastTick -= tickLength;  // carryover-aware timer reset
+                timeSinceLastFastDrop -= (tickLength / fastDropMultiplier);  // must also reset fast drop, as its update is included in a tick update (no double dropping)
             }
 
-            // check for round losses
-            if (player1.GetLossStatus() || player2.GetLossStatus()) {
-                // be careful of potential draws!
-                if (player1.GetLossStatus() && !(player2.GetLossStatus())) roundsWon[1]++;
-                if (player2.GetLossStatus() && !(player1.GetLossStatus())) roundsWon[0]++;
+            // implicit else with the exception of extremely slow framerates, which we want
+            if (timeSinceLastFastDrop >= (tickLength / fastDropMultiplier)) {  // time for the next fast drop
+                player1.DoFastDrop();
+                player2.DoFastDrop();
+                timeSinceLastFastDrop -= (tickLength / fastDropMultiplier);  // carryover-aware timer reset
+            }
+        } else { // no round is ongoing, so do the appropriate pre-match / victory / between-rounds behaviour
+            if (runCountdownToNextRound) {  // countdown to next round, after generating the new boards for it
+                timeToRoundStart -= Time.deltaTime;
+                if (timeToRoundStart <= 0) {
+                    runTicks = true;
+                    runCountdownToNextRound = false;
+                }
+            } else if (runBoardGenerationCountdown) {  // display the boards from the previous round for some time
+                timeToBoardGeneration -= Time.deltaTime;
+                if (timeToBoardGeneration <= 0) {
+                    runCountdownToNextRound = true;
+                    runBoardGenerationCountdown = false;
 
-                // regardless of draw / win, no further ticks for this round should be carried out
-
-
+                    // have old boards do their cleanup of all associated blocks (before they are garbage collected)
+                    player1.Cleanup();
+                    player2.Cleanup();
+                    // create new boards for next round
+                    player1 = new PlayerBoard(this, player1Offset, roundDisparityMultipliers[Mathf.Max(0, roundsWon[1] - roundsWon[0])]);
+                    player2 = new PlayerBoard(this, player2Offset, roundDisparityMultipliers[Mathf.Max(0, roundsWon[0] - roundsWon[1])]);
+                }
+            } else {  // display match victory indefinitely
 
             }
-
-            timeSinceLastTick -= tickLength;  // carryover-aware timer reset
-            timeSinceLastFastDrop -= (tickLength / fastDropMultiplier);  // must also reset fast drop, as its update is included in a tick update (no double dropping)
         }
-
-        // implicit else with the exception of extremely slow framerates, which we want
-        if (timeSinceLastFastDrop >= (tickLength / fastDropMultiplier)) {  // time for the next fast drop
-            player1.DoFastDrop();
-            player2.DoFastDrop();
-            timeSinceLastFastDrop -= (tickLength / fastDropMultiplier);  // carryover-aware timer reset
-        }
-	}
-
-
+    }
 }
