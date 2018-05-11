@@ -29,6 +29,7 @@ public class GameManagerScript : MonoBehaviour {
         private int roundMultiplier;  // the current attack bonus based on round status
         private int attackReceived;  // the number of blocks to place on the board this tick due to attacks
         private bool hasLost;  // has this player lost the round?
+        private bool canMove;  // can movements currently be made on this board?
 
         private Queue<PolyominoShapeEnum.PolyominoShape> upcomingPolyominoes;  // the shapes of all upcoming polyominoes (not generated onto the board yet)
         private PolyominoScript controllablePolyomino;  // current polyomino that is falling under player control (not due to attack)
@@ -45,6 +46,7 @@ public class GameManagerScript : MonoBehaviour {
 
             fastDropState = false;
             hasLost = false;
+            canMove = false;
             fallingPolyominos = new List<PolyominoScript>();
             attackReceived = 0;
 
@@ -64,54 +66,70 @@ public class GameManagerScript : MonoBehaviour {
         /// The movement functions, which perform actions that are based directly on player input.  Call these from controls code.
         /// </summary>
         public void RotateClockwise() {
-            RotatePolyomino(controllablePolyomino, 1);
+            Action rotateClockwise = () => {
+                RotatePolyomino(controllablePolyomino, 1);
+            };
+
+            AttemptInstantMove(rotateClockwise);
         }
         public void RotateCounterClockwise() {
-            RotatePolyomino(controllablePolyomino, -1);
+            Action rotateCounterClockwise = () => {
+                RotatePolyomino(controllablePolyomino, -1);
+            };
+
+            AttemptInstantMove(rotateCounterClockwise);
         }
         public void SlideLeft() {
-            MoveAction slider = (poly) => {
-                List<Vector2Int> slideLocations = new List<Vector2Int>();
+            Action slideLeft = () => {
+                MoveAction slider = (poly) => {
+                    List<Vector2Int> slideLocations = new List<Vector2Int>();
 
-                // "move" each block individually
-                foreach (BlockScript block in poly.memberBlocks) {
-                    // Where would this block slide to?
-                    Vector2Int newGridLocation = FindGridLocationOfBlock(block);
-                    newGridLocation.x -= 1;
-                    slideLocations.Add(newGridLocation);
-                }
+                    // "move" each block individually
+                    foreach (BlockScript block in poly.memberBlocks) {
+                        // Where would this block slide to?
+                        Vector2Int newGridLocation = FindGridLocationOfBlock(block);
+                        newGridLocation.x -= 1;
+                        slideLocations.Add(newGridLocation);
+                    }
 
-                bool slideIsPossible = CanInsertBlocksAtLocations(slideLocations);
-                // Actually move the blocks left in the world, setting up for RegisterPolyomino to move them in the grid.
-                if (slideIsPossible) {
-                    MoveBlocksToGridLocations(poly.memberBlocks, slideLocations);
-                }
-                return slideIsPossible;
+                    bool slideIsPossible = CanInsertBlocksAtLocations(slideLocations);
+                    // Actually move the blocks left in the world, setting up for RegisterPolyomino to move them in the grid.
+                    if (slideIsPossible) {
+                        MoveBlocksToGridLocations(poly.memberBlocks, slideLocations);
+                    }
+                    return slideIsPossible;
+                };
+
+                AttemptWithPolyominoUnregistered(controllablePolyomino, slider);
             };
 
-            AttemptWithPolyominoUnregistered(controllablePolyomino, slider);
+            AttemptInstantMove(slideLeft);
         }
         public void SlideRight() {
-            MoveAction slider = (poly) => {
-                List<Vector2Int> slideLocations = new List<Vector2Int>();
+            Action slideRight = () => {
+                MoveAction slider = (poly) => {
+                    List<Vector2Int> slideLocations = new List<Vector2Int>();
 
-                // "move" each block individually
-                foreach (BlockScript block in poly.memberBlocks) {
-                    // Where would this block slide to?
-                    Vector2Int newGridLocation = FindGridLocationOfBlock(block);
-                    newGridLocation.x += 1;
-                    slideLocations.Add(newGridLocation);
-                }
+                    // "move" each block individually
+                    foreach (BlockScript block in poly.memberBlocks) {
+                        // Where would this block slide to?
+                        Vector2Int newGridLocation = FindGridLocationOfBlock(block);
+                        newGridLocation.x += 1;
+                        slideLocations.Add(newGridLocation);
+                    }
 
-                bool slideIsPossible = CanInsertBlocksAtLocations(slideLocations);
-                // Actually move the blocks right in the world, setting up for RegisterPolyomino to move them in the grid.
-                if (slideIsPossible) {
-                    MoveBlocksToGridLocations(poly.memberBlocks, slideLocations);
-                }
-                return slideIsPossible;
+                    bool slideIsPossible = CanInsertBlocksAtLocations(slideLocations);
+                    // Actually move the blocks right in the world, setting up for RegisterPolyomino to move them in the grid.
+                    if (slideIsPossible) {
+                        MoveBlocksToGridLocations(poly.memberBlocks, slideLocations);
+                    }
+                    return slideIsPossible;
+                };
+
+                AttemptWithPolyominoUnregistered(controllablePolyomino, slider);
             };
 
-            AttemptWithPolyominoUnregistered(controllablePolyomino, slider);
+            AttemptInstantMove(slideRight);
         }
         // Unlike the other movement actions, fast drop is locked to the tick system and therefore must be turned on and off.
         // This also allows players to hold down their fast drop button in order to get continuous fast drop.
@@ -177,7 +195,7 @@ public class GameManagerScript : MonoBehaviour {
             // Drop any polyominos that are falling outside player control.
             DropAllFallingPolyominos();
 
-            if (fastDropState) DropPolyomino(controllablePolyomino);  // drop the player's polyomino if needed, but do not lock
+            if ((controllablePolyomino != null) && (fastDropState)) DropPolyomino(controllablePolyomino);  // drop the player's polyomino if needed, but do not lock
         }
 
         internal void ReceiveAttack(int attack) {
@@ -186,6 +204,10 @@ public class GameManagerScript : MonoBehaviour {
 
         internal bool GetLossStatus() {
             return hasLost;
+        }
+
+        internal void SetMovement(bool moveStatus) {
+            canMove = moveStatus;
         }
 
         // Removes all blocks and other GameObjects this board is responsible for, so that they do not persist between rounds.  Use only when this board is about to become unused.
@@ -295,6 +317,7 @@ public class GameManagerScript : MonoBehaviour {
         // Call only when losing a round.  Safe to call multiple times in a tick if the round is lost for multiple reasons simultaneously.
         private void LoseRound() {
             hasLost = true;
+            canMove = false;
         }
 
         // Attempts to drop a polyomino one grid row, respecting collision and leaving the polyomino in place on failure.  Returns true iff successful.
@@ -353,6 +376,12 @@ public class GameManagerScript : MonoBehaviour {
             };
 
             AttemptWithPolyominoUnregistered(polyomino, rotater);
+        }
+
+
+        // Perform an "instant move" movement (like sliding or rotation) unless this board has been movement-locked (round not currently ongoing) or there is no polyomino to move
+        private void AttemptInstantMove(Action movement) {
+            if ((controllablePolyomino != null) && (canMove)) movement();
         }
 
 
@@ -540,6 +569,12 @@ public class GameManagerScript : MonoBehaviour {
             while (blocksToGenerate > 0) {
                 int column = gameManager.prng.Next(boardWidth);  // the column to put the block in
 
+                // ensure that the block is on the grid (automatic loss otherwise)
+                if (nextBlockHeights[column] < 0) {
+                    LoseRound();
+                    break;  // don't generate off the grid
+                }
+
                 // generate new polyomino if needed
                 if (attackPolyominos[column] == null) {
                     attackPolyominos[column] = ((GameObject)Instantiate(gameManager.polyominoPrefab)).GetComponent<PolyominoScript>();
@@ -700,7 +735,10 @@ public class GameManagerScript : MonoBehaviour {
                     if (player1.GetLossStatus() && !(player2.GetLossStatus())) roundsWon[1]++;
                     if (player2.GetLossStatus() && !(player1.GetLossStatus())) roundsWon[0]++;
 
-                    runTicks = false; // regardless of draw / win, no further ticks for this round should be carried out
+                    // regardless of draw / win, no further ticks or "instant moves" for this round should be carried out
+                    runTicks = false;
+                    player1.SetMovement(false);
+                    player2.SetMovement(false);
 
                     if (roundsWon.Max() < numRoundsToWin) {  // display current boards and trigger delayed set up for next round, since neither player has won the match
                         runBoardGenerationCountdown = true;
@@ -726,6 +764,10 @@ public class GameManagerScript : MonoBehaviour {
                 if (timeToRoundStart <= 0) {
                     runTicks = true;
                     runCountdownToNextRound = false;
+
+                    // must also enable player-controlled movement
+                    player1.SetMovement(true);
+                    player2.SetMovement(true);
                 }
             } else if (runBoardGenerationCountdown) {  // display the boards from the previous round for some time
                 timeToBoardGeneration -= Time.deltaTime;
@@ -739,6 +781,8 @@ public class GameManagerScript : MonoBehaviour {
                     // create new boards for next round
                     player1 = new PlayerBoard(this, player1Offset, roundDisparityMultipliers[Mathf.Max(0, roundsWon[1] - roundsWon[0])]);
                     player2 = new PlayerBoard(this, player2Offset, roundDisparityMultipliers[Mathf.Max(0, roundsWon[0] - roundsWon[1])]);
+                    // ensure that no attacks carry over between rounds
+                    attacksToSend = new int[2];  // automatically initializes to 0
                 }
             } else {  // display match victory indefinitely
 
