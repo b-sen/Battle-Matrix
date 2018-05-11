@@ -138,6 +138,7 @@ public class GameManagerScript : MonoBehaviour {
             fastDropState = on;
         }
 
+
         /// <summary>
         /// Use this to preview the upcoming polyominoes in the UI.
         /// </summary>
@@ -154,10 +155,18 @@ public class GameManagerScript : MonoBehaviour {
             return (int[])(attackTotals.Clone());
         }
 
+        /// <summary>
+        /// Use this to read the multiplier applied to this round based on round win/loss record.
+        /// </summary>
+        /// <returns>Integer multiplier.</returns>
         public int GetRoundMultiplier() {
             return roundMultiplier;
         }
 
+
+        /// <summary>
+        /// For parent class use.
+        /// </summary>
 
         internal void DoTick() {
             /// This ordering of checks ensures that matched rows are always shown for a tick and that polyominoes locked into place can immediately be considered for matching.
@@ -678,6 +687,12 @@ public class GameManagerScript : MonoBehaviour {
     public int GetPlayerRoundsWon(int player) {
         return roundsWon[player - 1];
     }
+    public double GetTimeToBoardGeneration() {
+        return timeToBoardGeneration;
+    }
+    public double GetTimeToRoundStart() {
+        return timeToRoundStart;
+    }
 
 
     /// <summary>
@@ -774,6 +789,7 @@ public class GameManagerScript : MonoBehaviour {
                 if (timeToBoardGeneration <= 0) {
                     runCountdownToNextRound = true;
                     runBoardGenerationCountdown = false;
+                    timeToRoundStart = 3.0;
 
                     // have old boards do their cleanup of all associated blocks (before they are garbage collected)
                     player1.Cleanup();
