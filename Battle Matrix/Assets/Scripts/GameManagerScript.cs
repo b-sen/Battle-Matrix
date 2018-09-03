@@ -33,7 +33,10 @@ public class GameManagerScript : MonoBehaviour {
 
         private Queue<PolyominoShapeEnum.PolyominoShape> upcomingPolyominoes;  // the shapes of all upcoming polyominoes (not generated onto the board yet)
         private PolyominoScript controllablePolyomino;  // current polyomino that is falling under player control (not due to attack)
-        private List<PolyominoScript> fallingPolyominos;  // all polyominos that are currently falling outside player control
+        private List<PolyominoScript> fallingPolyominos;  // all polyominos that are currently falling outside player control, whether due to attack or cascade
+        /* NB: Whether or not a falling block is attacking / ticking down is handled by the BLOCK (after an initial notification that the block is part of an attack by the board),
+         * instead of having the board track attacking blocks separately and then changing them to ticking blocks, in order to avoid categorization messes - a block may fall as part
+         * of an attack, begin ticking down, and then be caught in a cascade while still ticking, which would put it in two lists that would act on it if the board handled that. */
 
         private delegate bool MoveAction(PolyominoScript polyomino);
 
@@ -174,6 +177,11 @@ public class GameManagerScript : MonoBehaviour {
             // Clear previously matched rows.
             SweepMatchedRows();
 
+            // Have any attack blocks that need to tick down do so (done before dropping to prevent immediate tick-downs).
+            foreach (BlockScript block in grid) {  // automatically handles multidimensional iteration
+                if (block != null) block.DoTick();
+            }
+
             // Drop any polyominos that are falling outside player control.
             DropAllFallingPolyominos();
 
@@ -289,6 +297,7 @@ public class GameManagerScript : MonoBehaviour {
             if (canSpawn) {  // generate and register blocks in place
                 foreach (Vector2Int gridLocation in newBlockLocations) {
                     BlockScript block = GenerateBlockInPlace(gridLocation);
+                    block.SetState(BlockStateEnum.BlockState.Falling);
                     // register to polyomino
                     controllablePolyomino.memberBlocks.Add(block);
                     block.SetPolyomino(controllablePolyomino);
@@ -591,8 +600,9 @@ public class GameManagerScript : MonoBehaviour {
                     fallingPolyominos.Add(attackPolyominos[column]);
                 }
 
-                // generate block
+                // generate block and give it its state
                 BlockScript block = GenerateBlockInPlace(new Vector2Int(column, nextBlockHeights[column]));
+                block.SetState(BlockStateEnum.BlockState.Attack);
                 // register to polyomino
                 attackPolyominos[column].memberBlocks.Add(block);
                 block.SetPolyomino(attackPolyominos[column]);
@@ -645,7 +655,7 @@ public class GameManagerScript : MonoBehaviour {
     private static int boardWidth = 10;
 
     // Balancing controls for game speed.
-    private static double tickLength = 1.0;
+    private static double tickLength = 1.0;  // Length of a tick, in seconds.
     private static int fastDropMultiplier = 4;  // How much faster is fast drop than waiting for the block to fall on its own?
 
     // Controls how powerful attacks are at each row height (how many blocks they send, before round-based multipliers).
