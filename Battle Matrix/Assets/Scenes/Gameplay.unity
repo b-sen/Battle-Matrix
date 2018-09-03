@@ -270,7 +270,7 @@ Prefab:
     m_Modifications:
     - target: {fileID: 4502713367268452, guid: 9cdd36585a574fa4da9c5ed6fca2ea0e, type: 2}
       propertyPath: m_LocalPosition.x
-      value: -19
+      value: -20
       objectReference: {fileID: 0}
     - target: {fileID: 4502713367268452, guid: 9cdd36585a574fa4da9c5ed6fca2ea0e, type: 2}
       propertyPath: m_LocalPosition.y
@@ -391,7 +391,7 @@ Prefab:
     m_Modifications:
     - target: {fileID: 4502713367268452, guid: 9cdd36585a574fa4da9c5ed6fca2ea0e, type: 2}
       propertyPath: m_LocalPosition.x
-      value: 17.8
+      value: 19
       objectReference: {fileID: 0}
     - target: {fileID: 4502713367268452, guid: 9cdd36585a574fa4da9c5ed6fca2ea0e, type: 2}
       propertyPath: m_LocalPosition.y
@@ -4487,9 +4487,9 @@ Canvas:
   m_GameObject: {fileID: 1671100178}
   m_Enabled: 1
   serializedVersion: 3
-  m_RenderMode: 0
-  m_Camera: {fileID: 0}
-  m_PlaneDistance: 100
+  m_RenderMode: 1
+  m_Camera: {fileID: 1211173290}
+  m_PlaneDistance: 1
   m_PixelPerfect: 0
   m_ReceivesEvents: 1
   m_OverrideSorting: 0

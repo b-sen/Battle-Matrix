@@ -20,6 +20,8 @@ public class RowScoreScript : MonoBehaviour {
     int[] p1Attack;
     int[] p2Attack;
 
+    private string noAttack = "";
+
     //PlayerScore[] ps;
 
     // Use this for initialization
@@ -36,11 +38,11 @@ public class RowScoreScript : MonoBehaviour {
 
         for (int i = 0; i < rows1.Count; i++)
         {
-            rows1[i].GetComponent<Text>().text = "";
+            rows1[i].GetComponent<Text>().text = noAttack;
         }
         for (int i = 0; i < rows2.Count; i++)
         {
-            rows2[i].GetComponent<Text>().text = "";
+            rows2[i].GetComponent<Text>().text = noAttack;
         }
 
     }
@@ -60,8 +62,8 @@ public class RowScoreScript : MonoBehaviour {
 
             for (int i = 0; i < gm.player1.GetAttackTotals().Length; i++)
             {
-                if (rows1[i] != null || gm.player1.GetAttackTotals()[i] == 0)
-                    rows1[i].GetComponent<Text>().text = "";
+                if (rows1[i] == null || gm.player1.GetAttackTotals()[i] == 0)
+                    rows1[i].GetComponent<Text>().text = noAttack;
                 else
                     rows1[i].GetComponent<Text>().text = gm.player1.GetAttackTotals()[i].ToString();
             }
@@ -73,8 +75,8 @@ public class RowScoreScript : MonoBehaviour {
 
             for (int i = 0; i < gm.player2.GetAttackTotals().Length; i++)
             {
-                if (rows2[i] != null || gm.player2.GetAttackTotals()[i] == 0)
-                    rows2[i].GetComponent<Text>().text = "";
+                if (rows2[i] == null || gm.player2.GetAttackTotals()[i] == 0)
+                    rows2[i].GetComponent<Text>().text = noAttack;
                 else
                     rows2[i].GetComponent<Text>().text = gm.player2.GetAttackTotals()[i].ToString();
             }
