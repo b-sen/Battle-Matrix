@@ -379,18 +379,39 @@ public class GameManagerScript : MonoBehaviour {
 
                 // "move" each block individually
                 foreach (BlockScript block in poly.memberBlocks) {
-                    // Where would this block rotate to?
+                    // Where would this block rotate to, before any kicks?
                     // Each coordinate is of the form (offset from pivot) + pivot
                     Vector2Int newGridLocation = new Vector2Int(Mathf.RoundToInt(direction * (FindGridLocationOfBlock(block).y - pivot.y) + pivot.x), Mathf.RoundToInt((- direction) * (FindGridLocationOfBlock(block).x - pivot.x) + pivot.y));
                     rotateLocations.Add(newGridLocation);
                 }
 
-                bool rotateIsPossible = CanInsertBlocksAtLocations(rotateLocations);
-                // Actually move the blocks clockwise in the world, setting up for RegisterPolyomino to move them in the grid.
-                if (rotateIsPossible) {
-                    MoveBlocksToGridLocations(poly.memberBlocks, rotateLocations);
+                // These "kick lists" control the offsets and ordering to be tried for "kicking" against blocks / walls / floors / ceilings in the way of a rotation.
+                List<int> verticalKicks = new List<int> { 0, -1, 1, -2, 2 };  // first try going against the pivot bias
+                List<int> horizontalKicks = new List<int> { 0, 1, -1, 2, -2 };  // ditto
+
+                // Try the rotation with the different kicks until one succeeds or all kick options are exhausted.
+                bool rotationSucceeded = false;
+                foreach (int verticalOffset in verticalKicks) {
+                    if (rotationSucceeded) break;
+
+                    foreach (int horizontalOffset in horizontalKicks) {
+                        if (rotationSucceeded) break;
+
+                        // offset the locations by the current kick to try
+                        List<Vector2Int> kickedLocations = new List<Vector2Int>();
+                        foreach (Vector2Int unkickedLocation in rotateLocations) {
+                            kickedLocations.Add(new Vector2Int(unkickedLocation.x + horizontalOffset, unkickedLocation.y + verticalOffset));
+                        }
+
+                        rotationSucceeded = CanInsertBlocksAtLocations(kickedLocations);
+                        // Actually move the blocks in the world, setting up for RegisterPolyomino to move them in the grid.
+                        if (rotationSucceeded) {
+                            MoveBlocksToGridLocations(poly.memberBlocks, kickedLocations);
+                        }
+                    }
                 }
-                return rotateIsPossible;
+
+                return rotationSucceeded;
             };
 
             AttemptWithPolyominoUnregistered(polyomino, rotater);
